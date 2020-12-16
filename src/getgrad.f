@@ -17,6 +17,9 @@ c GPEM = Gradients of the adiabatic or diabatic potential energies.
       include 'param.f'
       include 'c_sys.f'
 
+      include 'mpif.h'
+      integer my_id,nproc,ierr
+      integer status(MPI_STATUS_SIZE)
 c temp
       double precision taup(3),taup2(3)
       common/tauprint/taup,taup2
@@ -43,6 +46,10 @@ c msx search variables
        double precision x1mag,x1(3,mnat),gupp(3,mnat),
      &   dot1,egap,gf(3,mnat),gg(3,mnat),msx_grad(3,mnat)
 
+ccccc MPI
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
+
 c      print *,((xx(i,j),i=1,3),j=1,3),((pp(i,j),i=1,3),j=1,3)
 c ZERO
       do i=1,nsurft
@@ -50,6 +57,12 @@ c ZERO
       enddo
 
 c GET ENERGIES
+!      print *,"xx(1,1) = ",xx(1,1)," in getgrad on proc ",my_id
+!      print *,"nclu = ",nclu," in getgrad on proc ",my_id
+      print *,"symb = ",(symbol(i),i=1,nat)," in getgrad on proc ",my_id
+!      print *,"symb(9) = ",symbol(9)," in getgrad on proc ",my_id
+!      print *,"pema(1) = ",pema(1)," in getgrad on proc ",my_id
+!      print *,"pemd(1,1) = ",pemd(1,1)," in getgrad on proc ",my_id
       call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symbol)
 
 c POTENTIAL ENERGIES AND GRADIENTS
@@ -60,20 +73,24 @@ c     single surface propagation or surface hopping calculation
 c       adiabatic
         v = pema(nsurf)
         do i=1,3
-        do j=1,nclu
-          gv(i,j)=gpema(i,j,nsurf)
+          do j=1,nclu
+            gv(i,j)=gpema(i,j,nsurf)
+          enddo
         enddo
-        enddo
+!        print *,"gpema(1,1,1) = ",gpema(1,1,1),"on proc",my_id
       else if (repflag.eq.1) then
 c       diabatic
         v = pemd(nsurf,nsurf)
         do i=1,3
-        do j=1,nclu
-          gv(i,j)=gpemd(i,j,nsurf,nsurf)
-        enddo
+          do j=1,nclu
+            gv(i,j)=gpemd(i,j,nsurf,nsurf)
+          enddo
         enddo
       else
-        write(6,*)"REPFLAG = ",repflag," in GETPOT"
+c MPI
+        IF (my_id.eq.0) THEN
+          write(6,*)"REPFLAG = ",repflag," in GETPOT"
+        ENDIF
         stop
       endif
 
@@ -84,28 +101,27 @@ c     convert electronic variables to density matrix
       call getrho(cre,cim,rhor,rhoi,nsurft)
 
       if (repflag.eq.1) then
-
 c       diabatic representation
         v = 0.d0
         do k=1,nsurft
-        do l=1,nsurft
+          do l=1,nsurft
 c integrate phase angle separately
-        tmp = phase(l)-phase(k)
-        sntmp = dsin(tmp)
-        cstmp = dcos(tmp)
-        rhotmp = (rhor(k,l)*cstmp+rhoi(k,l)*sntmp)
-c       imaginary terms cancel exactly
-        v=v+rhotmp*pemd(k,l)
+            tmp = phase(l)-phase(k)
+            sntmp = dsin(tmp)
+            cstmp = dcos(tmp)
+            rhotmp = (rhor(k,l)*cstmp+rhoi(k,l)*sntmp)
+c imaginary terms cancel exactly
+            v=v+rhotmp*pemd(k,l)
 c end
 c integrate whole coefficient
 c        v = v + rhor(k,l)*pemd(k,l)
 c end
-        enddo
+          enddo
         enddo
         do 15 i=1,3
-        do 15 j=1,nclu
-        gv(i,j) = 0.d0
-        do 15 k=1,nsurft
+          do 15 j=1,nclu
+            gv(i,j) = 0.d0
+          do 15 k=1,nsurft
         do 15 l=1,nsurft
 c integrate phase angle separately
         tmp = phase(l)-phase(k)
@@ -124,23 +140,23 @@ c end
 c       adiabatic representation
         v = 0.d0
         do k=1,nsurft
-        v = v + rhor(k,k)*pema(k)
+          v = v + rhor(k,k)*pema(k)
         enddo
         do 20 i=1,3
-        do 20 j=1,nclu
-        gv(i,j) = 0.d0
-        do 20 k=1,nsurft
-        gv(i,j) = gv(i,j) + rhor(k,k)*gpema(i,j,k)
-        do 20 l=1,nsurft
+          do 20 j=1,nclu
+            gv(i,j) = 0.d0
+            do 20 k=1,nsurft
+            gv(i,j) = gv(i,j) + rhor(k,k)*gpema(i,j,k)
+            do 20 l=1,nsurft
 c integrate whole coefficient
 c        gv(i,j) = gv(i,j) - 2.d0*rhor(k,l)*dvec(i,j,k,l)*pema(k)
 c end
 c integrate phase angle separately
-        tmp = phase(k)-phase(l)
-        sntmp = dsin(tmp)
-        cstmp = dcos(tmp)
-        rhotmp = (rhor(k,l)*cstmp-rhoi(k,l)*sntmp)
-        gv(i,j) = gv(i,j) - 2.d0*rhotmp*dvec(i,j,k,l)*pema(k)
+            tmp = phase(k)-phase(l)
+            sntmp = dsin(tmp)
+            cstmp = dcos(tmp)
+            rhotmp = (rhor(k,l)*cstmp-rhoi(k,l)*sntmp)
+            gv(i,j) = gv(i,j) - 2.d0*rhotmp*dvec(i,j,k,l)*pema(k)
 c end
   20    continue
 

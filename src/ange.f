@@ -5,6 +5,11 @@ c Compute rotational energies around principal axes
       implicit none
       include 'param.f'
 
+c MPI
+      include 'mpif.h'
+      integer my_id,nproc,ierr
+      integer status(MPI_STATUS_SIZE)
+
       integer natom
       double precision xx(3,mnat),pp(3,mnat),mm(mnat),
      &   bigj(3),bigjtot,xxp(3,mnat),ppp(3,mnat)
@@ -16,17 +21,21 @@ c local
      & mom(3,3),ap(6),eig(3),rot(3,3),work(9),temp3,
      & mom2,rr
 
+ccccc MPI
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
+
 c single atom
       if (natom.eq.1) then
-         bigj(1) = 0.d0
-         bigj(2) = 0.d0
-         bigj(3) = 0.d0
-         bigjtot = 0.d0
-         erot(1) = 0.d0
-         erot(2) = 0.d0
-         erot(3) = 0.d0
-         erottot = 0.d0
-         return
+        bigj(1) = 0.d0
+        bigj(2) = 0.d0
+        bigj(3) = 0.d0
+        bigjtot = 0.d0
+        erot(1) = 0.d0
+        erot(2) = 0.d0
+        erot(3) = 0.d0
+        erottot = 0.d0
+        return
       endif
       
 c I modified the polyatomic part to work for linears instead of this
@@ -45,17 +54,17 @@ c natom >= 2
 c compute moment of intertia matrix mom
       do i=1,3
       do j=1,3
-          mom(i,j) = 0.d0
+        mom(i,j) = 0.d0
       enddo
       enddo
 
       do i=1,natom
-         mom(1,1)=mom(1,1)+mm(i)*(xx(2,i)**2+xx(3,i)**2)
-         mom(2,2)=mom(2,2)+mm(i)*(xx(1,i)**2+xx(3,i)**2)
-         mom(3,3)=mom(3,3)+mm(i)*(xx(1,i)**2+xx(2,i)**2)
-         mom(1,2)=mom(1,2)-mm(i)*(xx(1,i)*xx(2,i))
-         mom(1,3)=mom(1,3)-mm(i)*(xx(1,i)*xx(3,i))
-         mom(2,3)=mom(2,3)-mm(i)*(xx(2,i)*xx(3,i))
+        mom(1,1)=mom(1,1)+mm(i)*(xx(2,i)**2+xx(3,i)**2)
+        mom(2,2)=mom(2,2)+mm(i)*(xx(1,i)**2+xx(3,i)**2)
+        mom(3,3)=mom(3,3)+mm(i)*(xx(1,i)**2+xx(2,i)**2)
+        mom(1,2)=mom(1,2)-mm(i)*(xx(1,i)*xx(2,i))
+        mom(1,3)=mom(1,3)-mm(i)*(xx(1,i)*xx(3,i))
+        mom(2,3)=mom(2,3)-mm(i)*(xx(2,i)*xx(3,i))
       enddo
       mom(2,1)=mom(1,2)
       mom(3,1)=mom(1,3)
@@ -75,8 +84,12 @@ c     diagonalize the mom matrix
         ap(i+(j-1)*j/2)=mom(i,j)
       enddo
       enddo
+!      IF (my_id.eq.0)
       call dspev( 'v','u',3,ap,eig,rot,3,work,info )
-
+!      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+!      call MPI_BCAST(eig, 3, MPI_DOUBLE_PRECISION,
+!     &               0, MPI_COMM_WORLD, ierr)
+      
 c      print *,"rot"
 c      print *,(rot(1,j),j=1,3)
 c      print *,(rot(2,j),j=1,3)
@@ -86,20 +99,20 @@ c      print *,(eig(j),j=1,3)
 
 c rotate to diagonalize mom
       do i=1,natom
-         temp1 = xx(1,i)
-         temp2 = xx(2,i)
-         temp3 = xx(3,i)
-         xxp(1,i)=temp1*rot(1,1)+temp2*rot(2,1)+temp3*rot(3,1)
-         xxp(2,i)=temp1*rot(1,2)+temp2*rot(2,2)+temp3*rot(3,2)
-         xxp(3,i)=temp1*rot(1,3)+temp2*rot(2,3)+temp3*rot(3,3)
-         temp1 = pp(1,i)
-         temp2 = pp(2,i)
-         temp3 = pp(3,i)
-         ppp(1,i)=temp1*rot(1,1)+temp2*rot(2,1)+temp3*rot(3,1)
-         ppp(2,i)=temp1*rot(1,2)+temp2*rot(2,2)+temp3*rot(3,2)
-         ppp(3,i)=temp1*rot(1,3)+temp2*rot(2,3)+temp3*rot(3,3)
+        temp1 = xx(1,i)
+        temp2 = xx(2,i)
+        temp3 = xx(3,i)
+        xxp(1,i)=temp1*rot(1,1)+temp2*rot(2,1)+temp3*rot(3,1)
+        xxp(2,i)=temp1*rot(1,2)+temp2*rot(2,2)+temp3*rot(3,2)
+        xxp(3,i)=temp1*rot(1,3)+temp2*rot(2,3)+temp3*rot(3,3)
+        temp1 = pp(1,i)
+        temp2 = pp(2,i)
+        temp3 = pp(3,i)
+        ppp(1,i)=temp1*rot(1,1)+temp2*rot(2,1)+temp3*rot(3,1)
+        ppp(2,i)=temp1*rot(1,2)+temp2*rot(2,2)+temp3*rot(3,2)
+        ppp(3,i)=temp1*rot(1,3)+temp2*rot(2,3)+temp3*rot(3,3)
       enddo
-      
+
       call angmom(xxp,ppp,mm,natom,bigj,bigjtot)
 
 c rotational energies

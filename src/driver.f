@@ -8,6 +8,11 @@ c Computes a full trajectory from start to finish.
       include 'c_traj.f'
       include 'c_ran.f'
       include 'c_output.f'
+
+c MPI
+      include 'mpif.h'
+      integer my_id,nproc,ierr
+      integer status(MPI_STATUS_SIZE)
 c hack
       common/tmp/tmpprint
       double precision tmpprint(50)
@@ -52,16 +57,32 @@ c stochastic decoherence
       integer wellindex1,wellindex2,n1,n2,ijk
       double precision xwell,rvdw,evdw
       logical lzflag
+
+ccccc MPI
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
+
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+      print *,"Got to driver.f on proc ",my_id
+!      print *,"nat =",nat,"on proc ",my_id
+
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+      do i=1,nat
+        call MPI_BCAST(symbol(i), 2, MPI_CHARACTER,
+     &                 0, MPI_COMM_WORLD, ierr)
+      enddo
+
       lzflag=.false.
       if (tflag(4).lt.0) lzflag=.true.
 c      rvdw=0.d0
       evdw=1000.d0
 
 c initialize for this trajectory
-      lastgap0 =0.d0 ! TEMP AJ
-      lastgap =0.d0 ! TEMP AJ
-      lastcross =0.d0 ! TEMP AJ
-      ncross =0 ! TEMP AJ
+      lastgap0 = 0.d0 ! TEMP AJ
+      lastgap = 0.d0 ! TEMP AJ
+      lastcross = 0.d0 ! TEMP AJ
+      ncross = 0 ! TEMP AJ
       nhop = 0
       time = 0.d0
       stodecotime = -1.d0
@@ -75,10 +96,10 @@ c initialize for this trajectory
       enddo
       lfrust = .false.
       do i=1,mnat
-      do j=1,mnat
-        arij(i,j) = 0.d0
-        arij2(i,j) = 0.d0
-      enddo
+        do j=1,mnat
+          arij(i,j) = 0.d0
+          arij2(i,j) = 0.d0
+        enddo
       enddo
       atemp = 0.d0
       atemp2 = 0.d0
@@ -92,19 +113,28 @@ c initialize for this trajectory
       istepw = 0
       step = 0.d0
 
-c PIMD/RPMD add initialization
-
 c calculate and save initial values of things for later analysis
 c     initial coordinates and momenta
       do i=1,nat
-      do j=1,3
-         xxi(j,i)=xx(j,i)
-         ppi(j,i)=pp(j,i)
+        do j=1,3
+          xxi(j,i)=xx(j,i)
+          ppi(j,i)=pp(j,i)
+        enddo
       enddo
-      enddo
+c MPI
+!      ENDIF
+
+      print *,"xx(1,1) = ",xx(1,1)," on proc ",my_id
+!      print *,"pp(1,1) = ",pp(1,1)," on proc ",my_id
+!      print *,"mm(1) = ",mm(1)," on proc ",my_id
+
       call gettemp(pp,mm,nat,tempi,kei)
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+!      print *,"KE = ",kei," on proc ",my_id
+!      print *,"Temp = ",tempi," on proc ",my_id
       call getgrad(xx,pp,nsurf,pei,cre,cim,gv,gcre,gcim,nat,
      & phop,dmag,dvec,pem,gpem,phase)
+      print *,"Got to 130 in driver.f on proc ",my_id
       lastgap0 = lastgap  ! TEMP AJ
       lastgap = pem(1)-pem(2)  ! TEMP AJ
       call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
@@ -138,6 +168,8 @@ c      enddo
 
       tei=kei+pei
       call ange(xx,pp,mm,nat,eig,bigji,bigjtoti,eroti,erottoti)
+c MPI
+      IF (my_id.eq.0) THEN
       write(6,106)"Initial overall ang momentum = ",bigjtoti," au"
       write(6,106)"Initial overall rot energy   = ",erottoti*autoev,
      & " eV"
@@ -145,33 +177,37 @@ c      enddo
       write(6,106)"Initial potential energy     = ",pei*autoev," eV"
       write(6,106)"Initial total energy         = ",tei*autoev," eV"
       write(6,106)"Initial temp                 = ",tempi," K"
- 106  format(1x,a,f15.5,1x,a)
- 107  format(1x,a,3f12.5,1x,a)
       write(6,*)
 
       if(nsurft.gt.1) then
       do i=1,nsurft
-      write(6,*)"Potential for surf ",i," = ",pem(i)*autoev," eV"
+        write(6,*)"Potential for surf ",i," = ",pem(i)*autoev," eV"
       enddo
       endif
       write(6,*)
+      ENDIF
+ 106  format(1x,a,f15.5,1x,a)
+ 107  format(1x,a,3f12.5,1x,a)
 
 c photoexcite
       if (tflag(3).eq.1) then
         egap = dabs(pem(ntarget)-pem(nsurf))
         if (dabs(egap-ephoton).lt.wphoton) then
 c         successful excitation
-          print *,"Exciting from state ",nsurf," to state ",ntarget,
+          IF (my_id.eq.0)
+     &      print *,"Exciting from state ",nsurf," to state ",ntarget,
      &               " with a photon energy of ",egap*autoev
           nsurf=ntarget
           pei = pem(nsurf)
           tei = kei + pei
           call initelec
         else
+          IF (my_id.eq.0) THEN
           print *,"Unsuccessful excitation"
           print *,"Egap = ",egap*autoev," eV"
           print *,"Photon energy = ",ephoton*autoev," +/- ",
      &             wphoton*autoev," eV"
+          ENDIF  
           outcome = -2
           go to 999
         endif
@@ -185,23 +221,26 @@ c get trajectory index
       endif
 
 c write initial coordinates and momenta to output
+      IF (my_id.eq.0) THEN
       if (lwrite(10)) then
-      open(10)
-      write(10,*)ithistraj,pei*autoev
-      do i=1,nat
-      write(10,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
-      enddo
+        open(10)
+        write(10,*)ithistraj,pei*autoev
+        do i=1,nat
+          write(10,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
+        enddo
       endif
       if (lwrite(11)) then
-      open(11)
-      write(11,*)ithistraj,kei*autoev
-      do i=1,nat
-      write(11,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
-      enddo
+        open(11)
+        write(11,*)ithistraj,kei*autoev
+        do i=1,nat
+          write(11,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
+        enddo
       endif
+      ENDIF
 
  1010 format(5x,a2,4f20.8)
 
+      IF (my_id.eq.0) THEN
 c trajectory output
       if (termflag.eq.2) then
       write(6,'(20a15)')"          step",
@@ -240,10 +279,12 @@ c trajectory output
      &                  "          Probs"
       endif
       endif
+      ENDIF
 
 c ######################################################################
 c INTEGRATE TRAJECTORY
 c ######################################################################
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       do 10 while (.true.)
       istep = istep + 1      
 
@@ -277,6 +318,8 @@ c     converge gradient (TERMFLAG = 2)
         enddo
         enddo
         if (gvmag.le.t_gradmag**2) then
+c MPI
+          IF (my_id.eq.0) THEN
           write(6,*)"Gradient converged to ",
      &               dsqrt(gvmag)*autoev/autoang,"eV/A"
           write(6,*)"At the geometry "
@@ -284,11 +327,15 @@ c     converge gradient (TERMFLAG = 2)
             write(*,1090)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
  1090       format(a2,f15.6,3f21.8)
           enddo
+c MPI
+          ENDIF
           tmp1=-1.d0
           tmp2=-1.d0
           call addrot(pp,xx,mm,nat,tmp1,tmp2,sampjbrot1,sampjbrot2,
      &       tmp3,tmp4,dum3)
 
+c MPI
+          IF (my_id.eq.0) THEN
           if (lwrite(77)) then  ! special output file
             open(77,file="dint.geo") 
             write(77,*)pem(1)*autoev,
@@ -298,6 +345,8 @@ c     converge gradient (TERMFLAG = 2)
            write(77,1090)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
             enddo
           endif
+c MPI
+          ENDIF
 
           go to 999
         endif
@@ -313,10 +362,10 @@ c       find maximum and minimum bond distance corresponding to each outcome
         do i1=1,nat
         do i2=i1+1,nat
           do k=1,t_noutcome
-            if ( ( t_symb(k,1).eq.symbol(i1).and.
-     &             t_symb(k,2).eq.symbol(i2)      ) .or.
-     &           ( t_symb(k,1).eq.symbol(i2).and.
-     &             t_symb(k,2).eq.symbol(i1)      ) ) then
+            if ((t_symb(k,1).eq.symbol(i1).and.
+     &           t_symb(k,2).eq.symbol(i2)) .or.
+     &          (t_symb(k,1).eq.symbol(i2).and.
+     &           t_symb(k,2).eq.symbol(i1))) then
               rrr = 0.d0
               do j=1,3
               rrr = rrr + (xx(j,i1)-xx(j,i2))**2
@@ -340,8 +389,8 @@ c              if (rmin(k).gt.rrr.and.t_r(k).lt.0.d0) then
               endif
 c              print *,i1,i2,rrr*autoang,rmin(k)*autoang,rmax(k)*autoang
             endif
-            if ( ( t_symb(k,1).eq.'cm'.and.
-     &             t_symb(k,2).eq.'cm'      ) ) then
+            if ((t_symb(k,1).eq.'cm'.and.
+     &           t_symb(k,2).eq.'cm')) then
               call getrel(rcom,ecom)
               rmin(k)=rcom
               rmax(k)=rcom
@@ -362,13 +411,11 @@ c         print *,rmax(1)*autoang,t_r(1)*autoang,tmpprint(2)*autoang
           enddo
         endif
 c       monitor dissociation
-c          iturn = 1   ! TEMP HACK AJ
         if (iturn.eq.1) then
           do k=1,t_noutcome
             rtmp=rmax(k)
             if (t_symb(k,2).eq.'x') rtmp=rmin(k)
-c            if (k.eq.1) rtmp=rmin(k)  ! TEMP HACK AJ
-c       print *,k,rmin(k)*autoang,rmax(k)*autoang,iturn,t_r(k)*autoang
+c            print *,rmin(k)*autoang,rmax(k)*autoang,iturn
             if (rtmp.gt.t_r(k).and.t_r(k).gt.0.d0) then
 c           intercept FSTU trajectories that are still looking to unfrustrate
             if (lfrust) then
@@ -400,9 +447,9 @@ c Andersen thermostat
       if (lhit.and.scandth.gt.0.d0) then  
         call gettemp(pp,mm,nat,temp,ke)
         do i=1,nat
-        do j=1,3
-          pp(j,i)=pp(j,i)*dsqrt((scandth+pei-pe)/ke)
-        enddo
+          do j=1,3
+            pp(j,i)=pp(j,i)*dsqrt((scandth+pei-pe)/ke)
+          enddo
         enddo
         call gettemp(pp,mm,nat,temp,ke)
       endif
@@ -419,8 +466,12 @@ c      if (step*autofs.lt.1.d-2) then
 c         outcome=0
 c         go to 999
 c      endif
-      if (lwrite(85)) write(85,*)
-      if (lwrite(85)) write(85,*)ithistraj,istep,time*autofs
+c MPI
+      IF (my_id.eq.0) THEN
+        if (lwrite(85)) write(85,*)
+        if (lwrite(85)) write(85,*)ithistraj,istep,time*autofs
+c MPI
+      ENDIF
 
 c transport
 c      rtmp=xx(1,1)**2+xx(2,1)**2+xx(3,1)**2
@@ -435,19 +486,23 @@ c      ramptime = 2.d4 ! in fs
 c      nramp = 10 ! number of ramping cycles
 c      rampfact = 1.02 ! increase temp by this factor each ramp
       if (time > ramptime) then
-      call lindemann(xx,nat,step,time,arij,arij2,lind)
-      call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
-      if (lwrite(42)) call honey(ithistraj,xx,nat,time)
-      iramp = iramp + 1
-      if (lwrite(40)) write(40,*)ithistraj,iramp,atemp/time,stemp,lind
+        call lindemann(xx,nat,step,time,arij,arij2,lind)
+        call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
+c MPI
+      IF (my_id.eq.0) THEN
+        if (lwrite(42)) call honey(ithistraj,xx,nat,time)
+        iramp = iramp + 1
+        if (lwrite(40)) write(40,*)ithistraj,iramp,atemp/time,stemp,lind
  1040 format(2i7,3f15.5)
-      if (iramp.eq.nramp) go to 999
-      do i=1,mnat
-      do j=1,mnat
-        arij(i,j) = 0.d0
-        arij2(i,j) = 0.d0
-      enddo
-      enddo
+c MPI
+      ENDIF
+        if (iramp.eq.nramp) go to 999
+        do i=1,mnat
+          do j=1,mnat
+            arij(i,j) = 0.d0
+            arij2(i,j) = 0.d0
+          enddo
+        enddo
       do i=0,nbinrad+1
         raddist(i) = 0.d0
       enddo
@@ -456,9 +511,9 @@ c      rampfact = 1.02 ! increase temp by this factor each ramp
       stemp = 0.d0
       time = step
       do i=1,nat
-      do j=1,3
-        pp(j,i)=pp(j,i)*rampfact
-      enddo
+        do j=1,3
+          pp(j,i)=pp(j,i)*rampfact
+        enddo
       enddo
       endif
       endif
@@ -473,36 +528,36 @@ c update info at new geometry
       call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,
      &   phop,dmag,dvec,pem,gpem,phase)
       if (lzflag) then
-      r10=r1
-      r20=r2
-      a1230=a123
-      r1=0.d0
-      r2=0.d0
-      r3=0.d0
-      do i=1,3
-      r1=r1+(xx(i,1)-xx(i,2))**2
-      r2=r2+(xx(i,3)-xx(i,2))**2
-      r3=r3+(xx(i,3)-xx(i,1))**2
-      enddo
-      a123=(r1+r2-r3)/dsqrt(4.d0*r1*r2)
-      r1=dsqrt(r1)*autoang
-      r2=dsqrt(r2)*autoang
-      a123=dacos(a123)/dacos(-1.d0)*180.d0
-      lastgap0 = lastgap  ! TEMP AJ
-      lastgap = pem(1)-pem(2)  ! TEMP AJ
-      vlz0=vlz
-      vlz=(pem(1)+pem(2))/2.d0
-      pairy0(1)=pairy(1)
-      pairy0(2)=pairy(2)
-      plz0=plz
-      elz0=elz
-      hlz0=hlz
-      vlz0=vlz
-      glz0=glz
-      call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
-      if (lastgap0*lastgap.lt.0.d0) then
-      ncross=ncross+1
-      if (ncross.eq.abs(tflag(4))) go to 999
+        r10=r1
+        r20=r2
+        a1230=a123
+        r1=0.d0
+        r2=0.d0
+        r3=0.d0
+        do i=1,3
+          r1=r1+(xx(i,1)-xx(i,2))**2
+          r2=r2+(xx(i,3)-xx(i,2))**2
+          r3=r3+(xx(i,3)-xx(i,1))**2
+        enddo
+        a123=(r1+r2-r3)/dsqrt(4.d0*r1*r2)
+        r1=dsqrt(r1)*autoang
+        r2=dsqrt(r2)*autoang
+        a123=dacos(a123)/dacos(-1.d0)*180.d0
+        lastgap0 = lastgap  ! TEMP AJ
+        lastgap = pem(1)-pem(2)  ! TEMP AJ
+        vlz0=vlz
+        vlz=(pem(1)+pem(2))/2.d0
+        pairy0(1)=pairy(1)
+        pairy0(2)=pairy(2)
+        plz0=plz
+        elz0=elz
+        hlz0=hlz
+        vlz0=vlz
+        glz0=glz
+        call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
+        if (lastgap0*lastgap.lt.0.d0) then
+          ncross=ncross+1
+          if (ncross.eq.abs(tflag(4))) go to 999
 c     crude interpolation
       r1x=(dabs(lastgap0)*r1+dabs(lastgap)*r10)
      &         /(dabs(lastgap)+dabs(lastgap0))
@@ -555,6 +610,8 @@ c      ijk=1
       endif
 
       call getrel(rcom,ecom)
+c MPI
+      IF (my_id.eq.0) THEN
       if (lwrite(90)) 
      &  write(90,'(i5,10f15.5)')ithistraj,time*autofs,
      & tmpprint(2)*autoang,
@@ -564,12 +621,14 @@ c      ijk=1
          evdw=tmpprint(1)
          rvdw=tmpprint(2)
       endif
+c MPI
+      ENDIF
 
 c Stop at the first DMAG minimum
       if (termflag.eq.4) then
-      if( (dmag1-dmag2).lt.0.d0 .AND. (dmag-dmag1).gt.0.d0 ) go to 999
-      dmag2 = dmag1
-      dmag1 = dmag
+        if( (dmag1-dmag2).lt.0.d0 .AND. (dmag-dmag1).gt.0.d0 ) go to 999
+        dmag2 = dmag1
+        dmag1 = dmag
       endif
 
 c reinitialize CSDM
@@ -903,10 +962,12 @@ c ######################################################################
 
  999  continue
 
-      if (lwrite(16)) 
-     & write(16,'(2f13.5,2e18.5,3e18.5)')time*autofs,1.d4,
-     & phop(1)*step,rhor(1,1),
-     & (taup2(i)*autofs,i=1,3)
+c MPI
+      IF (my_id.eq.0) THEN
+        if (lwrite(16)) 
+     &   write(16,'(2f13.5,2e18.5,3e18.5)')time*autofs,1.d4,
+     &   phop(1)*step,rhor(1,1),
+     &   (taup2(i)*autofs,i=1,3)
 
 c trajectory has ended
 
@@ -930,27 +991,30 @@ c write final coordinates and momenta to output
      &     (rhor(k,k),k=1,nsurft)
         endif
       endif
+
       if (lwrite(41)) then
-      call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
+        call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
       endif
       if (lwrite(42)) call honey(ithistraj,xx,nat,time)
       ENDIF
 
       if (lwrite(20)) then
-      write(20,*)ithistraj,pe*autoev
-      do i=1,nat
-      write(20,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
-      enddo
+        write(20,*)ithistraj,pe*autoev
+        do i=1,nat
+          write(20,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
+        enddo
       endif
 
       if (lwrite(21)) then
-      write(21,*)ithistraj,ke*autoev
-      do i=1,nat
-      write(21,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
-      enddo
+        write(21,*)ithistraj,ke*autoev
+        do i=1,nat
+          write(21,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
+        enddo
       endif
 
       if (lwrite(91)) write(91,*)ithistraj,rvdw*autoang,evdw*autocmi
+c MPI
+      ENDIF
 
  1001 return
       end

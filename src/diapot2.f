@@ -5,6 +5,12 @@ c Compute the diatomic energy.
       implicit none
       include 'param.f'
       include 'c_sys.f'
+
+c MPI
+      include 'mpif.h'
+      integer my_id,nproc,ierr
+      integer status(MPI_STATUS_SIZE)
+
       integer j,nsurf,i
       double precision v,xx(3,mnat),xj,erot,rmass,x,
      &  mmm(2)
@@ -13,6 +19,10 @@ c Compute the diatomic energy.
      & pema(mnsurf),gpema(3,mnat,mnsurf),dvec(3,mnat,mnsurf,mnsurf)
 
       character*2 symb(mnat)
+
+ccccc MPI
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
 
       xx(1,1) = 0.d0
       xx(2,1) = 0.d0

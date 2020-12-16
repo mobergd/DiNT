@@ -11,6 +11,10 @@ c                          distance for each mode (mass-scaled).
       implicit none
       include 'param.f'
 
+      include 'mpif.h'
+      integer my_id,nproc,ierr
+      integer status(MPI_STATUS_SIZE)
+
 c     input
       logical lreadhess,ldofrag
       integer nclu,repflag,nsurf,nmtype
@@ -31,84 +35,98 @@ c     local
      & nmvec1(3*mnat,3*mnat),work(lwork),hess(3*mnat,3*mnat),
      & gvsum,rturn(3*mnat),etotvib,temp(3*mnat),tmp,rr
 
+ccccc MPI
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
+
       if (nclu.lt.2) then
+        IF (my_id.eq.0) THEN
         write(6,*)"cant do normal modes for ",nclu," atoms"
+        ENDIF
         stop
       endif
-
+ 
 c Initialize
       do i=1,3*mnat
-      do j=1,3*mnat
-      hess(i,j) = 0.d0
-      enddo
+        do j=1,3*mnat
+          hess(i,j) = 0.d0
+        enddo
       enddo
 
 c Check geometry
       if (ldofrag) then
-      do k=1,3
-      do l=1,nclu
-        xx(k,l) = xx0(k,l)
-      enddo
-      enddo
-      call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symb)
-      if (repflag.eq.0) then
-c       adiabatic
-        ewell = pema(nsurf)
         do k=1,3
+          do l=1,nclu
+            xx(k,l) = xx0(k,l)
+          enddo
+        enddo
+        call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symb)
+        if (repflag.eq.0) then
+c         adiabatic
+          ewell = pema(nsurf)
+          do k=1,3
+            do l=1,nclu
+              gv1(k,l) = gpema(k,l,nsurf)
+            enddo
+          enddo
+        elseif (repflag.eq.1) then
+c         diabatic
+          ewell = pemd(nsurf,nsurf)
+          do k=1,3
+            do l=1,nclu
+              gv1(k,l) = gpemd(k,l,nsurf,nsurf)
+            enddo
+          enddo
+        else
+          IF (my_id.eq.0) THEN 
+          write(6,*)"REPFLAG = ",repflag," in NORMOD"
+          ENDIF
+          stop
+        endif
+        IF (my_id.eq.0) THEN 
+        write(6,'(a,f19.10)')"Energy at this geometry = ",ewell*autoev
+        write(6,*)
+        write(6,*)"      Atom      x,y,z      Gradient (eV/A)"
+        ENDIF
+        gvsum = 0.d0
         do l=1,nclu
-          gv1(k,l) = gpema(k,l,nsurf)
+          do k=1,3
+            write(6,100)l,k,gv1(k,l)*autoev/autoang
+            gvsum = gvsum + gv1(k,l)**2
+          enddo
         enddo
-        enddo
-      elseif (repflag.eq.1) then
-c       diabatic
-        ewell = pemd(nsurf,nsurf)
-        do k=1,3
-        do l=1,nclu
-          gv1(k,l) = gpemd(k,l,nsurf,nsurf)
-        enddo
-        enddo
-      else
-        write(6,*)"REPFLAG = ",repflag," in NORMOD"
-        stop
-      endif
-      write(6,'(a,f19.10)')"Energy at this geometry = ",ewell*autoev
-      write(6,*)
-      write(6,*)"      Atom      x,y,z      Gradient (eV/A)"
-      gvsum = 0.d0
-      do l=1,nclu
-      do k=1,3
-        write(6,100)l,k,gv1(k,l)*autoev/autoang
-        gvsum = gvsum + gv1(k,l)**2
-      enddo
-      enddo
-      gvsum = dsqrt(gvsum)
-      write(6,*)"Magnitude of gradient = ",gvsum*autoev/autoang," eV/A"
-      write(6,*)
+        gvsum = dsqrt(gvsum)
  100  format(2i10,f20.10)
+        IF (my_id.eq.0) THEN 
+       write(6,*)"Magnitude of gradient = ",gvsum*autoev/autoang," eV/A"
+        write(6,*)
+        ENDIF
       endif
+
+      IF (my_id.eq.0) THEN 
       write(6,*)"Computing and diagonalizing Hessian..."
       write(6,*)
-
+      ENDIF
       IF (lreadhess) THEN
-c     read in Hessin from fort.70
-      write(6,*)"Reading Hessian from unit 70"
-      open(70)
-      do i=1,3
-      do j=1,nclu
-        ij = (i-1)*nclu + j
-        do k=1,3
-        do l=1,nclu
-          kl = (k-1)*nclu + l
-             read(70,*)i1,i2,hess(i1,i2)
-             hess(i1,i2) = hess(i1,i2)*mu/dsqrt(mm(j)*mm(l))
-             if (i1.ne.ij.or.i2.ne.kl) then
-               write(6,*)"Index mismatch reading Hessian from unit 70"
-               stop
-             endif
+c       read in Hessian from fort.70
+        write(6,*)"Reading Hessian from unit 70"
+        open(70)
+        do i=1,3
+        do j=1,nclu
+          ij = (i-1)*nclu + j
+          do k=1,3
+          do l=1,nclu
+            kl = (k-1)*nclu + l
+              read(70,*)i1,i2,hess(i1,i2)
+              hess(i1,i2) = hess(i1,i2)*mu/dsqrt(mm(j)*mm(l))
+              if (i1.ne.ij.or.i2.ne.kl) then
+                write(6,*)"Index mismatch reading Hessian from unit 70"
+                stop
+              endif
+          enddo
+          enddo
         enddo
         enddo
-      enddo
-      enddo
       ELSE
 c Compute Hessian matrix from gradients
 c     stepsize

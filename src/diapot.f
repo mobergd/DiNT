@@ -6,12 +6,22 @@ c number IM. Specialized for atom-diatom initial conditions.
       implicit none
       include 'param.f'
       include 'c_sys.f'
+
+c MPI
+      include 'mpif.h'
+      integer my_id,nproc,ierr
+      integer status(MPI_STATUS_SIZE)
+
       integer im,j,nsurf,i
       double precision v,xx(3,mnat),r(3),xj,erot,rmass,x,
      &  mmm(mnat)
 
       double precision pemd(mnsurf,mnsurf),gpemd(3,mnat,mnsurf,mnsurf),
      & pema(mnsurf),gpema(3,mnat,mnsurf),dvec(3,mnat,mnsurf,mnsurf)
+
+ccccc MPI
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
 
 c      r(1) = 100.0d0
 c      r(2) = 100.0d0
@@ -35,11 +45,11 @@ c      print *,x*autoang,v*autoev
 
 c add rotation if j > 0
       if (xj.ge.0) then
-      if (im.eq.1) rmass = mmm(1)*mmm(2)/(mmm(1)+mmm(2))
-      if (im.eq.2) rmass = mmm(2)*mmm(3)/(mmm(2)+mmm(3))
-      if (im.eq.3) rmass = mmm(3)*mmm(1)/(mmm(3)+mmm(1))
-      erot = 0.5d0*(xj+0.5d0)**2/(rmass*x**2)
-      v = v + erot
+        if (im.eq.1) rmass = mmm(1)*mmm(2)/(mmm(1)+mmm(2))
+        if (im.eq.2) rmass = mmm(2)*mmm(3)/(mmm(2)+mmm(3))
+        if (im.eq.3) rmass = mmm(3)*mmm(1)/(mmm(3)+mmm(1))
+        erot = 0.5d0*(xj+0.5d0)**2/(rmass*x**2)
+        v = v + erot
       endif
 
       return

@@ -11,14 +11,14 @@ c of the initially occupied state
       integer i
 
       do i=1,nsurft
-      crei(i) = 0.d0
-      cimi(i) = 0.d0
+        crei(i) = 0.d0
+        cimi(i) = 0.d0
       enddo
       crei(nsurf) = 1.d0
 
       do i=1,2*nsurft
-      cre(i) = 0.d0
-      cim(i) = 0.d0
+        cre(i) = 0.d0
+        cim(i) = 0.d0
       enddo
       cre(nsurf) = 1.d0
 c     used for CSDM

@@ -10,6 +10,11 @@ c Writes some output files.
       include 'c_ran.f'
       include 'c_output.f'
 
+c MPI
+      include 'mpif.h'
+      integer my_id,nproc,ierr
+      integer status(MPI_STATUS_SIZE)
+
       integer i,j,k,arr,index,nprod,ioutatom
       double precision rhor(mnsurf,mnsurf),rhoi(mnsurf,mnsurf),tmp,tmpi,
      & rr(3),jp(9),jq(9),jm(9),xv,xj,rin,rout,evib,erotx,theta,
@@ -35,6 +40,10 @@ c     for fragment pes calls
      & df(3,mnat,mnsurf,mnsurf),peag(mnmol),rtmp
       character*2 symbf(mnat)
 
+ccccc MPI
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
+
 c GET TRAJECTORY INDEX
       if (tflag(2).eq.1) then
         index = trajlist(itraj)
@@ -44,6 +53,7 @@ c GET TRAJECTORY INDEX
 
 c GENERAL ANALYSES
 c     check integration
+      IF (my_id.eq.0) THEN
       write(6,*)"Energy conservation"
       write(6,100)"Initial total energy = ",tei*autoev," eV"
       write(6,100)"Final total energy   = ",te*autoev," eV"
@@ -59,18 +69,26 @@ c     check integration
       write(6,*)
 
       write(6,*)"Electronic state population conservation"
+      ENDIF
+
       call getrho(crei,cimi,rhor,rhoi,nsurft)
       tmpi = 0.d0
       do i=1,nsurft
        tmpi = tmpi + rhor(i,i)
       enddo
+
+      IF (my_id.eq.0) THEN
       write(6,102)"                       ","total",(i,i=1,nsurft)
       write(6,103)"Initial populations  = ",tmpi,(rhor(i,i),i=1,nsurft)
+      ENDIF
+
       call getrho(cre,cim,rhor,rhoi,nsurft)
       tmp = 0.d0
       do i=1,nsurft
        tmp = tmp + rhor(i,i)
       enddo
+
+      IF (my_id.eq.0) THEN
       write(6,103)"Final populations    = ",tmp,(rhor(i,i),i=1,nsurft)
       write(6,104)"Converged to         = ",(tmp-tmpi)
       write(6,*)
@@ -86,6 +104,7 @@ c WRITE FINAL STATE INFO
       write(6,*)"Initial electronic state  =",nsurf0
       write(6,*)"Final electronic state    =",nsurf
       write(6,*)
+      ENDIF
 
 c ATOM-DIATOM INITIAL CONDITIONS, PERFORM THE FOLLOWING ANALYSES, WHICH FOLLOW NAT
       if (initx(1).eq.3) then  !!!!! TURN OFF FOR CO2
@@ -95,9 +114,11 @@ c ATOM-DIATOM INITIAL CONDITIONS, PERFORM THE FOLLOWING ANALYSES, WHICH FOLLOW N
         if (rr(2).lt.rr(3).and.rr(2).lt.rr(1)) arr=2   ! bugfix
 !        if (rr(2).lt.rr(3).and.rr(2).lt.rr(3)) arr=2
         if (rr(3).lt.rr(1).and.rr(3).lt.rr(2)) arr=3
+        IF (my_id.eq.0) THEN
         write(6,*)"Initial arrangement       =",arrad
         write(6,*)"Final arrangement         =",arr
         write(6,*)
+        ENDIF
        call carttojac(xx,pp,mm,jq,jp,jm,0,arr)
        kerel = 0.d0
        kedia = 0.d0
@@ -143,6 +164,7 @@ c       print *,rin*autoang,rout*autoang
       xv=0.d0
       xj=0.d0
       endif
+c TEMP CO2, UNCOMMENT TO PUT BACK
        if (lwrite(30)) write(30,115)index,nsurf,arr,time*autofs,istep,
      &            rhor(1,1),rhor(2,2),
      &            te*autoev,etmp*autoev,
@@ -160,15 +182,19 @@ C FOR ASSOCIATION/DISSOCIATION REACTIONS
       if (termflag.eq.3) then
 c **********************************************************************
 
+      IF (my_id.eq.0) THEN
       write(6,*)"Final state analysis for TERMFLAG = 3"
       write(6,*)"Outcome = ",outcome
+      ENDIF
 
       if (outcome.eq.-1) then
 c     somehow the trajectory failed
 c     don't analyze
+      IF (my_id.eq.0) THEN
       write(6,*)"Outcome = -1 indicates a problem with this trajectory"
       write(6,*)"Skipping analysis"
       write(6,*)
+      ENDIF
       tdelay = 0.
       go to 88
       endif
@@ -176,33 +202,39 @@ c     don't analyze
       if (outcome.eq.-2) then
 c     this trajectory could not be photoexcited
 c     don't analyze
+      IF (my_id.eq.0) THEN
       write(6,*)"Outcome = -2 "
       write(6,*)"Skipping analysis"
       write(6,*)
+      ENDIF
       tdelay = 0.
       go to 88
       endif
 
       if (outcome.eq.0) then
 c     we hit the max steps before we dissociated
-        write(6,*)"Hit the maximum number of steps. ",
+        IF (my_id.eq.0) write(6,*)"Hit the maximum number of steps. ",
      &  "Products will be analyzed as a single molecule."
         nprod = 1
       else
         if (t_r(outcome).gt.0) then
+        IF (my_id.eq.0) THEN
         write(6,*)"Dissociation"
         write(6,*)"Broke a ",t_symb(outcome,1),"-",t_symb(outcome,2),
      &  " bond with atom indices",aind(outcome,1),
      &  " and ",aind(outcome,2)
         write(6,*)"Assigning fragment # based on shortest distance to ",
      &  "the atoms in the broken bond"
+        ENDIF
         nprod = 2
         else
+        IF (my_id.eq.0) THEN
         write(6,*)"Association"
         write(6,*)"Formed a ",t_symb(outcome,1),"-",t_symb(outcome,2),
      &  " bond with atom indices",aind(outcome,1),
      &  " and ",aind(outcome,2)
         write(6,*)"Assigning all atoms to the same product fragment"
+        ENDIF
         nprod = 1
         endif
       endif
@@ -212,12 +244,12 @@ c     we hit the max steps before we dissociated
       mmfragtot(1) = 0.d0
       mmfragtot(2) = 0.d0
       do i=1,3
-      comx(i)=0.d0
-      comp(i)=0.d0
-      comxag(i,1)=0.d0
-      comxag(i,2)=0.d0
-      compag(i,1)=0.d0
-      compag(i,2)=0.d0
+        comx(i)=0.d0
+        comp(i)=0.d0
+        comxag(i,1)=0.d0
+        comxag(i,2)=0.d0
+        compag(i,1)=0.d0
+        compag(i,2)=0.d0
       enddo
       do i=1,nat
         if (nprod.eq.1) then       ! for undissociated complexes, assign all atoms to the first group
@@ -225,24 +257,21 @@ c     we hit the max steps before we dissociated
         else
           if(t_symb(outcome,1).eq."cm".and.
      &       t_symb(outcome,2).eq."cm") then
-          ifrag=1
-          if (i.gt.natom(1)) ifrag=2
+            ifrag=1
+            if (i.gt.natom(1)) ifrag=2
           else
-          rr1 = 0.d0               ! for dissociated fragments, assign atoms to group based on shortest distance to atoms in broken bond
-          rr2 = 0.d0
-          do j=1,3
-            rr1 = rr1 + (xx(j,i)-xx(j,aind(outcome,1)))**2
-            rr2 = rr2 + (xx(j,i)-xx(j,aind(outcome,2)))**2
-          enddo
-          ifrag = 1
-          if (rr2.lt.rr1) ifrag = 2
+            rr1 = 0.d0               ! for dissociated fragments, assign atoms to group based on shortest distance to atoms in broken bond
+            rr2 = 0.d0
+            do j=1,3
+              rr1 = rr1 + (xx(j,i)-xx(j,aind(outcome,1)))**2
+              rr2 = rr2 + (xx(j,i)-xx(j,aind(outcome,2)))**2
+            enddo
+            ifrag = 1
+            if (rr2.lt.rr1) ifrag = 2
           endif
         endif
-c H2O+2AR HACK TEMP AJ
-c        if (i.le.3) ifrag=1
-c        if (i.gt.3) ifrag=2
-c H2O+2AR HACK TEMP AJ
-        write(6,*)"Atom #",i," ",symbol(i)," is in fragment",ifrag
+        IF (my_id.eq.0) write(6,*)
+     &      "Atom #",i," ",symbol(i)," is in fragment",ifrag
         nfrag(ifrag) = nfrag(ifrag) + 1
         fragind(nfrag(ifrag),ifrag) = i
         mmfragtot(ifrag) = mmfragtot(ifrag) + mm(i)   ! total fragment mass
@@ -266,9 +295,11 @@ c H2O+2AR HACK TEMP AJ
       write(6,*)
 
       do j=1,nprod
-      write(6,*)"Product group ",j," has ",nfrag(j),
+        IF (my_id.eq.0) THEN
+        write(6,*)"Product group ",j," has ",nfrag(j),
      &          " atoms with a mass ",mmfragtot(j)/amutoau," amu"
-      if (nfrag(j).eq.1.and.mmfragtot(j).eq.15.9949d0) print *,"REACT"
+        if (nfrag(j).eq.1.and.mmfragtot(j).eq.15.9949d0) print *,"REACT"
+        ENDIF
       enddo
       write(6,*)
 
@@ -297,6 +328,7 @@ c      if(outcome.eq.2) ioutatom=1  ! hack for CO2
       tmp=dsqrt(compag(1,ioutatom)**2
      & +compag(2,ioutatom)**2+compag(3,ioutatom)**2)
       theta=dacos(compag(3,ioutatom)/tmp)/dacos(-1.d0)*180.d0   ! Scattering angle. Assumes Pinitial = (0,0,Prel) for frag 2.
+      IF (my_id.eq.0) THEN
       write(6,*)"RELATIVE"
       write(6,*)"Final CoM separation           = ",rf*autoang," A"
       write(6,*)"Final orbital angular momentum = ",lorbtot," hbar"
@@ -305,6 +337,7 @@ c      if(outcome.eq.2) ioutatom=1  ! hack for CO2
       write(6,*)"Delay time                     = ",tdelay*autofs," fs"
       write(6,*)"Scattering angle               = ",theta
       write(6,*)
+      ENDIF
 c uncomment for CO2
 c       if (lwrite(30)) write(30,115)index,nsurf,arr,time*autofs,istep,
 c     &            rhor(1,1),rhor(2,2),
@@ -319,6 +352,7 @@ c     &            kerel,etmp2,evib,erotx,xv,xj,theta
       evibag(2) = 0.d0
       theta = 0.d0
       endif
+      IF (my_id.eq.0) THEN
       write(6,*)"SUPERMOL"
       write(6,*)"Final kinetic energy           = ",ke*autoev," eV"
       write(6,*)"Final potential energy         = ",pe*autoev," eV"
@@ -326,15 +360,18 @@ c     &            kerel,etmp2,evib,erotx,xv,xj,theta
       write(6,*)
 
       write(6,*)"FRAGMENTS"
+      ENDIF
       do ifrag=1,nprod
-        write(6,*)"Analyzing fragment ",ifrag
+        IF (my_id.eq.0) write(6,*)"Analyzing fragment ",ifrag
         if (nfrag(ifrag).eq.0) then
-          write(6,*)"No atoms in this fragment"
+          IF (my_id.eq.0) write(6,*)"No atoms in this fragment"
           peag(ifrag)=0.d0
         else if (nfrag(ifrag).eq.1) then
           itmp = fragind(1,ifrag)
+          IF (my_id.eq.0) THEN
           write(6,*)" Atomic fragment"
           write(6,*)" Atom # ",itmp," (",symbol(itmp),")"
+          ENDIF
           bigjtotag(ifrag)=0.d0
           erottotag(ifrag)=0.d0
           evibag(ifrag)=0.d0
@@ -344,11 +381,13 @@ c maybe include special analysis for diatoms, but for now use poly analyses
         else if (.false.) then
           itmp1 = fragind(1,ifrag)
           itmp2 = fragind(2,ifrag)
+          IF (my_id.eq.0) THEN
           write(6,*)" Diatomic fragment"
           write(6,*)" Atom #s ",itmp1," (",symbol(itmp1),") and ",itmp2
      & ," (",symbol(itmp2),")"
+          ENDIF
         else
-          write(6,*)"Polyatomic (N=>2) fragment"
+          IF (my_id.eq.0) write(6,*)"Polyatomic (N=>2) fragment"
           nf=nfrag(ifrag)
           do i=1,nf          ! reassign mass, xx, pp info for this AG to a single array
             itmp = fragind(i,ifrag)
@@ -371,14 +410,17 @@ c          if (.false.) then
             peag(ifrag)=0.d0
           endif
           peag(ifrag)=peag(ifrag)+ezero-ezeroim(ifrag)
-          write(6,*)"Final PE for this fragment = ",peag(ifrag)*autoev
+          IF (my_id.eq.0) write(6,*)
+     &          "Final PE for this fragment = ",peag(ifrag)*autoev
           call ange(xxfrag,ppfrag,mmfrag,nfrag(ifrag),eig,
      &    tmp3j,bigjtotag(ifrag),
      &    tmp3e,erottotag(ifrag))
+          IF (my_id.eq.0) THEN
           write(6,*)"Final angular momentum for frag ",ifrag,
      &              " = ",bigjtotag(ifrag)
           write(6,*)"Final rotational energy for frag ",ifrag,
      &              " = ",erottotag(ifrag)*autoev
+          ENDIF
           do i=1,nfrag(ifrag)
           do k=1,3
             ppfrag(k,i)=ppfrag(k,i)
@@ -388,24 +430,26 @@ c          if (.false.) then
           call gettemp(ppfrag,mmfrag,nfrag(ifrag),
      &                               tempfrag,kefrag(ifrag))
           evibag(ifrag)=kefrag(ifrag)-erottotag(ifrag)
+          IF (my_id.eq.0) THEN
           write(6,*)"Final vib energy for frag ",ifrag,
      &              " = ",evibag(ifrag)*autoev
           write(6,*)"Final kinetic energy for frag ",ifrag,
      &              " = ",kefrag(ifrag)*autoev
           write(6,*)"Final total energy for frag ",ifrag,
      &              " = ",(peag(ifrag)+kefrag(ifrag))*autoev
+          ENDIF
         endif
-        write(6,*)
+        IF (my_id.eq.0) write(6,*)
       enddo
 
 
  88   continue
 
 c hack delay time
+      IF (my_id.eq.0) THEN
       if (lwrite(32)) write(32,1032)index,nsurf,outcome,
      &   rhor(1,1),rhor(2,2),tdelay*autofs
  1032 format(3i5,3f15.5)
-
 
       if (lwrite(31)) then
         write(31,1031)index,nsurf,outcome,
@@ -430,6 +474,7 @@ c hack delay time
         write(38,1038)index,bqci*autoang,(eorbqci+erelqci)*autoev,
      &  (eorb+erel)*autoev,pei*autoev,pe*autoev,theta
       endif
+      ENDIF
 
  1031 format(3i5,100f15.5)
  1038 format(i5,100d15.5)
