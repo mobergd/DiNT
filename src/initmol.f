@@ -526,7 +526,7 @@ c       correct for this atom groups zero of energy
       peagi(im)=pe
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call gettemp(ppm,mmm,natom(im),temp,ke)
-      print *,"Init temp = ",temp,"on proc ",my_id
+!      print *,"Init temp = ",temp,"on proc ",my_id
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 !      print *,"Before ange, ppm(1,1) = ",ppm(1,1)," on proc",my_id
       IF (my_id.eq.0) THEN

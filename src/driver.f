@@ -124,9 +124,10 @@ c     initial coordinates and momenta
 c MPI
 !      ENDIF
 
-      print *,"xx(1,1) = ",xx(1,1)," on proc ",my_id
-!      print *,"pp(1,1) = ",pp(1,1)," on proc ",my_id
-!      print *,"mm(1) = ",mm(1)," on proc ",my_id
+      print *,"xx(1,1) = ",xx(1,1),"on proc ",my_id
+      print *,"pp(1,1) = ",pp(1,1),"on proc ",my_id
+      print *,"nsurf = ",nsurf,"on proc ",my_id
+!      print *,"mm(1) = ",mm(1),"on proc ",my_id
 
       call gettemp(pp,mm,nat,tempi,kei)
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
@@ -134,7 +135,7 @@ c MPI
 !      print *,"Temp = ",tempi," on proc ",my_id
       call getgrad(xx,pp,nsurf,pei,cre,cim,gv,gcre,gcim,nat,
      & phop,dmag,dvec,pem,gpem,phase)
-      print *,"Got to 130 in driver.f on proc ",my_id
+!      print *,"Got to 130 in driver.f on proc ",my_id
       lastgap0 = lastgap  ! TEMP AJ
       lastgap = pem(1)-pem(2)  ! TEMP AJ
       call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
@@ -488,13 +489,11 @@ c      rampfact = 1.02 ! increase temp by this factor each ramp
       if (time > ramptime) then
         call lindemann(xx,nat,step,time,arij,arij2,lind)
         call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
-c MPI
+        iramp = iramp + 1
       IF (my_id.eq.0) THEN
         if (lwrite(42)) call honey(ithistraj,xx,nat,time)
-        iramp = iramp + 1
         if (lwrite(40)) write(40,*)ithistraj,iramp,atemp/time,stemp,lind
  1040 format(2i7,3f15.5)
-c MPI
       ENDIF
         if (iramp.eq.nramp) go to 999
         do i=1,mnat

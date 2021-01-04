@@ -41,9 +41,9 @@ c      print *,x*autoang,v
 
 c add rotation if j > 0
       if (xj.ge.0) then
-       rmass = mmm(1)*mmm(2)/(mmm(1)+mmm(2))
-       erot = 0.5d0*(xj+0.5d0)**2/(rmass*x**2)
-       v = v + erot
+        rmass = mmm(1)*mmm(2)/(mmm(1)+mmm(2))
+        erot = 0.5d0*(xj+0.5d0)**2/(rmass*x**2)
+        v = v + erot
       endif
 
       return

@@ -424,10 +424,13 @@ c ######################################################################
 c ######################################################################
 
 c     ADJUST ZERO OF ENERGY
+!      print *,"pema(1) =",pema(1),"on proc",my_id
+!      print *,"ezero =",ezero,"on proc",my_id
       do i=1,nsurft
         pema(i)=pema(i)-ezero
         pemd(i,i)=pemd(i,i)-ezero
       enddo
+!      print *,"pema(1) =",pema(1),"on proc",my_id
 
       return
 

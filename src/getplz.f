@@ -3,12 +3,20 @@
       implicit none
       include 'param.f'
 
+      include 'mpif.h'
+      integer my_id,nproc,ierr
+      integer status(MPI_STATUS_SIZE)
+
       integer i,j,nat,n0
       double precision gtmp,h12,mm(mnat),pp(3,mnat),gpem(3,mnat,mnsurf),
      & pdot,elz,plz,h12x,h12y,gtmp1,gtmp2,tmpf,e0,be,ex,xxx,pairy(2),
      & a1,a2,a3,a4,f1,f2
 
       common/pesh12/h12x,h12y
+
+ccccc MPI
+      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
 
       gtmp=0.d0
       gtmp1=0.d0
