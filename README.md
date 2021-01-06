@@ -1,16 +1,21 @@
 # DiNT
 ## Direct Nonadiabatic Trajectories v2.0: A code for non-Born--Oppenheimer molecular dynamics
 
-This is the development version of DiNT obtained from the AutoMech suite: [AutoMech](https://github.com/Auto-Mech/DiNT)\
-Release download of DiNT v2.0 available at: [UMN](https://comp.chem.umn.edu/dint/)\
+This is the development version of DiNT included with the AutoMech suite: [AutoMech](https://github.com/Auto-Mech/DiNT)\
+
+A stable release download of DiNT v2.0 is available at: [UMN](https://comp.chem.umn.edu/dint/)\
+
 Manual in PDF format: [Manual](https://comp.chem.umn.edu/dint/Dint_v2.0_manual.pdf)
 
 ## Authors
-DiNT v1.0 (Jul 4 2013): Ahren W. Jasper, C. Melania Oana, and Donald G. Truhlar
-DiNT v2.0 (Dec 16 2020): Ahren W. Jasper, Rui Ming Zhang, and Donald G. Truhlar
+DiNT v1.0 (Jul 4 2013): Ahren W. Jasper, C. Melania Oana, and Donald G. Truhlar\
+DiNT v2.0 (Dec 10 2020): Ahren W. Jasper, Rui Ming Zhang, and Donald G. Truhlar
 
 ## Functionality
-DiNT is a classical trajectory program for computing adiabatic and nonadiabatic chemistry. The code has a variety of options for preparing initial conditions, for performing final state analyses, and for semiclassical nonadiabatic propagation. The user may supply their own analytic potential energy surface, use one of the previously developed surfaces included in the distribution, or perform direct dynamics calculations. Recent applications include collisional energy transfer and spin-forbidden kinetics calculations.
+DiNT is a parallel Fortran computer program for performing classical and semiclassical trajectory simulations of electronically adiabatic and nonadiabatic processes.
+DiNT - version 2.0 can be used for dynamics governed either by a single potential energy surface (electronically adiabatic processes) or by two or more coupled potential energy surfaces (electronically nonadiabatic processes).
+DiNT - version 2.0 can handle reactive trajectories, bimolecular inelastic collisions, and unimolecular processes.
+DiNT - version 2.0 can be run at fixed energy or for thermal ensembles.
 
 ## Preferred citations for this code
  1. A. W. Jasper, C. M. Oana, and D. G. Truhlar, DiNT, July 2013.
@@ -22,4 +27,4 @@ DiNT is a classical trajectory program for computing adiabatic and nonadiabatic 
   user@login:$ make
   ```
 
-(Note: cmake option currently under development for v2.0, not guaranteed to work)
+(Note: cmake option currently not supported for v2.0, not guaranteed to work)
