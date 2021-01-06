@@ -14,9 +14,9 @@ c MPI
       integer status(MPI_STATUS_SIZE)
 
       double precision xtot,ytot,ztot,mtot,timpnow,kinow,etmp
-      double precision xxm1(mnat),xxm2(mnat),xxm3(mnat),
-     &  ppm1(mnat),ppm2(mnat),ppm3(mnat),
-     &  xx1(mnat),xx2(mnat),xx3(mnat),pp1(mnat),pp2(mnat),pp3(mnat)
+!      double precision xxm1(mnat),xxm2(mnat),xxm3(mnat),
+!     &  ppm1(mnat),ppm2(mnat),ppm3(mnat),
+!     &  xx1(mnat),xx2(mnat),xx3(mnat),pp1(mnat),pp2(mnat),pp3(mnat)
       double precision xxm(3,mnat),ppm(3,mnat),mmm(mnat),
      &  phop(mnsurf),dmag,ppj(3,mnat),ek2,ejrot
       integer im,i,j,k,ii
@@ -37,8 +37,6 @@ c      letot = .false. ! fixed vib+K2 energy
 ccccc MPI
       call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
       call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
-
-!      print *,"Got to initmol.f on proc ",my_id
 
       IF (my_id.eq.0) THEN
       write(6,*)"Generating initial conditions for AG ",im
@@ -121,8 +119,6 @@ c       populate normal modes according to the quantum numbers from vibwells
       elseif (initx(im).eq.6.and..not.lems(im)) then
         IF (my_id.eq.0)
      &    write(6,*)"INITx = 6:  Read from a separate file"
-!        write(6,*)"sampwell(im) = ",sampwell(im)," according to
-!     &     proc",my_id
         if (sampwell(im).eq.2) then
           call MPI_BARRIER(MPI_COMM_WORLD, ierr)
           call ranwell(whwell,relwell1(im))
@@ -141,8 +137,6 @@ c       populate normal modes according to the quantum numbers from vibwells
      &                 0, MPI_COMM_WORLD, ierr)
           call MPI_BCAST(ppm, 3*natom(im), MPI_DOUBLE_PRECISION,
      &             0, MPI_COMM_WORLD, ierr)
-!          print *,"xxm(1,1) = ",xxm(1,1)," on proc",my_id
-!          print *,"molpe = ",molpe," on proc",my_id
         endif
       elseif (initx(im).eq.6.and.lems(im)) then
         if (itraj.gt.1) then
@@ -265,7 +259,6 @@ c BCAST pp matrix
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call MPI_BCAST(ppm, 3*natom(im), MPI_DOUBLE_PRECISION,
      &             0, MPI_COMM_WORLD, ierr)
-!      print *,"ppm(1,1) = ",ppm(1,1)," on proc",my_id
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call gettemp(ppm,mmm,natom(im),temp,ke)
@@ -522,13 +515,10 @@ c       correct for this atom groups zero of energy
      &    "Initial potential energy evalulation skipped"
         pe = 0.d0
       endif
-!      print *,"PE = ",pe,"on proc ",my_id
       peagi(im)=pe
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call gettemp(ppm,mmm,natom(im),temp,ke)
-!      print *,"Init temp = ",temp,"on proc ",my_id
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!      print *,"Before ange, ppm(1,1) = ",ppm(1,1)," on proc",my_id
       IF (my_id.eq.0) THEN
       call ange(xxm,ppm,mmm,natom(im),eig,bigj,bigjtot,erot,erottot)
       ENDIF
@@ -542,8 +532,6 @@ c       correct for this atom groups zero of energy
      &               0, MPI_COMM_WORLD, ierr)
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       te = pe+ke
-!      print *,"TE = ",te,"on proc ",my_id
-!      print *,"Erottot = ",erottot,"on proc ",my_id
       IF (my_id.eq.0) THEN   
       write(6,106)"Initial potential energy   = ",
      &   pe*autoev," eV"
@@ -589,41 +577,6 @@ c write manipulated data back to xx and pp arrays
       call MPI_BCAST(pp, 3*natom(im), MPI_DOUBLE_PRECISION,
      &             0, MPI_COMM_WORLD, ierr)
 
-!      IF (my_id.eq.0) THEN
-!      do j=1,natom(im)
-!        xx1(j)=xx(1,j)
-!        xx2(j)=xx(2,j)
-!        xx3(j)=xx(3,j)
-!        pp1(j)=pp(1,j)
-!        pp2(j)=pp(2,j)
-!        pp3(j)=pp(3,j)
-!      enddo
-!      ENDIF
-!      call MPI_BCAST(xx1, natom(im), MPI_DOUBLE_PRECISION,
-!     &             0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(xx2, natom(im), MPI_DOUBLE_PRECISION,
-!     &             0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(xx3, natom(im), MPI_DOUBLE_PRECISION,
-!     &             0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(pp1, natom(im), MPI_DOUBLE_PRECISION,
-!     &             0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(pp2, natom(im), MPI_DOUBLE_PRECISION,
-!     &             0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(pp3, natom(im), MPI_DOUBLE_PRECISION,
-!     &             0, MPI_COMM_WORLD, ierr)
-!      IF (my_id.ne.0) THEN
-!      do j=1,natom(im)
-!        xx(1,j)=xx1(j)
-!        xx(2,j)=xx2(j)
-!        xx(3,j)=xx3(j)
-!        pp(1,j)=pp1(j)
-!        pp(2,j)=pp2(j)
-!        pp(3,j)=pp3(j)
-!      enddo
-!      ENDIF
-
-!      print *,"xx(1,1) = ",xx(1,1),"on proc",my_id
-!      print *,"pp(1,1) = ",pp(1,1),"on proc",my_id
 c temp
       rtrans=0.d0
 

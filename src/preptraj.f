@@ -24,7 +24,6 @@ ccccc MPI
      &               0, MPI_COMM_WORLD, ierr)
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call gettemp(pp,mm,nat,temp,ke)
-!      print *,"Temp 1 = ",temp,"on proc ",my_id
       IF (my_id.eq.0) THEN
       write(6,*)"Calculated temp = ",temp," K"
       write(6,*)"Total KE        = ",ke*autoev," eV"
@@ -53,7 +52,6 @@ ccccc MPI
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
       call gettemp(pp,mm,nat,temp,ke)
-!      print *,"Temp 2 = ",temp,"on proc ",my_id
       IF (my_id.eq.0) THEN
       write(6,*)"Placed CoM at origin"
       write(6,*)"Calculated temp = ",temp," K"
@@ -78,7 +76,6 @@ c     remove overall momenta
         pp(3,i)=pp(3,i)-ztot*mm(i)/mtot
       enddo
       call gettemp(pp,mm,nat,temp,ke)
-!      print *,"Temp 3 = ",temp,"on proc ",my_id
       IF (my_id.eq.0) THEN
       write(6,*)"Removed CoM motion"
       write(6,*)"Calculated temp = ",temp," K"

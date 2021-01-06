@@ -57,13 +57,9 @@ c ZERO
       enddo
 
 c GET ENERGIES
-!      print *,"xx(1,1) = ",xx(1,1)," in getgrad on proc ",my_id
-!      print *,"nclu = ",nclu," in getgrad on proc ",my_id
-      print *,"symb = ",(symbol(i),i=1,nat)," in getgrad on proc ",my_id
-!      print *,"symb(9) = ",symbol(9)," in getgrad on proc ",my_id
-!      print *,"pema(1) = ",pema(1)," in getgrad on proc ",my_id
-!      print *,"pemd(1,1) = ",pemd(1,1)," in getgrad on proc ",my_id
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symbol)
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
 c POTENTIAL ENERGIES AND GRADIENTS
       IF (METHFLAG.EQ.0.OR.METHFLAG.EQ.1.OR.METHFLAG.EQ.5) THEN
@@ -77,7 +73,6 @@ c       adiabatic
             gv(i,j)=gpema(i,j,nsurf)
           enddo
         enddo
-!        print *,"gpema(1,1,1) = ",gpema(1,1,1),"on proc",my_id
       else if (repflag.eq.1) then
 c       diabatic
         v = pemd(nsurf,nsurf)
@@ -87,10 +82,7 @@ c       diabatic
           enddo
         enddo
       else
-c MPI
-        IF (my_id.eq.0) THEN
-          write(6,*)"REPFLAG = ",repflag," in GETPOT"
-        ENDIF
+        IF (my_id.eq.0) write(6,*)"REPFLAG = ",repflag," in GETPOT"
         stop
       endif
 
@@ -174,21 +166,21 @@ c end
 
 c FOR USE BY CSDM, MAGNITUDE OF D
 c      if (methflag.eq.4) then
-c       compute sum of magnitude of coupled DVECs
-        dmag = 0.d0
-        do k=1,nsurft
-          dsum2 = 0.d0
-          if (k.ne.nsurf) then
-            do i=1,3
-            do j=1,nclu
-              dsum2 = dsum2 + dvec(i,j,k,nsurf)**2
-            enddo
-            enddo
-          endif
-          dsum2 = max(0.d0,dsum2)
-          dsum2 = dsqrt(dsum2)
-          dmag = dmag + dsum2
-        enddo
+c     compute sum of magnitude of coupled DVECs
+      dmag = 0.d0
+      do k=1,nsurft
+        dsum2 = 0.d0
+        if (k.ne.nsurf) then
+          do i=1,3
+          do j=1,nclu
+            dsum2 = dsum2 + dvec(i,j,k,nsurf)**2
+          enddo
+          enddo
+        endif
+        dsum2 = max(0.d0,dsum2)
+        dsum2 = dsqrt(dsum2)
+        dmag = dmag + dsum2
+      enddo
 c      endif
 
 c TIME-DERIVATIVES OF THE ELECTRONIC COORDINATES

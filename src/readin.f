@@ -33,7 +33,6 @@ c read potential interface flag
       write(6,*)"POTFLAG = ",potflag
       ENDIF
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!      IF (my_id.ne.0)
       call MPI_BCAST(potflag, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
       if (potflag.eq.0) then
         IF (my_id.eq.0) write(6,*)"Using the POTLIB MM-HO-1 interface"
@@ -59,7 +58,6 @@ c      write(6,*)"Using a user-designed interface"
       IF (my_id.eq.0) write(6,*)
 
 !      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!      print *,"Got to readin.f on proc ",my_id
       call prepot
 
 c LDOFRAG
@@ -72,12 +70,10 @@ c initial surface, number of coupled surfaces, and electronic representation fla
       ENDIF
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!      IF (my_id.ne.0) THEN
       call MPI_BCAST(nsurf0, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
       call MPI_BCAST(nsurft, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
       call MPI_BCAST(methflag, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
       call MPI_BCAST(repflag, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-!      ENDIF
 
       IF (my_id.eq.0) THEN
       write(6,*)"Electronic surfaces"
@@ -86,8 +82,6 @@ c initial surface, number of coupled surfaces, and electronic representation fla
       write(6,*)"Number of electronic surfaces = ",nsurft
       write(6,*)"REPFLAG = ",repflag
       ENDIF
-
-!      print *,"REPFLAG = ",repflag,"on proc ",my_id
 
       if (repflag.eq.0) then
         IF (my_id.eq.0)
@@ -193,7 +187,6 @@ c read integration parameters
       ENDIF
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!      IF (my_id.ne.0)
       call MPI_BCAST(intflag, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
       if (intflag.eq.1) then
@@ -206,12 +199,10 @@ c       convert timestep to au
         hstep0 = hstep0/autofs
         ENDIF
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(hstep0, 1, MPI_DOUBLE_PRECISION,
      &                         0, MPI_COMM_WORLD, ierr)
         call MPI_BCAST(nprint, 1, MPI_INTEGER,
      &                         0, MPI_COMM_WORLD, ierr)
-!        ENDIF
       elseif (intflag.eq.0) then
         IF (my_id.eq.0) THEN
         read(5,*)hstep0,eps,nprint
@@ -223,20 +214,19 @@ c       convert timestep to au
         hstep0 = hstep0/autofs
         ENDIF
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-        IF (my_id.ne.0) THEN
+!        IF (my_id.ne.0) THEN
         call MPI_BCAST(hstep0, 1, MPI_DOUBLE_PRECISION,
      &                         0, MPI_COMM_WORLD, ierr)
         call MPI_BCAST(eps, 1, MPI_DOUBLE_PRECISION,
      &                      0, MPI_COMM_WORLD, ierr)
         call MPI_BCAST(nprint, 1, MPI_INTEGER,
      &                         0, MPI_COMM_WORLD, ierr)
-        ENDIF
+!        ENDIF
       else
         IF (my_id.eq.0)
      &    write(6,*)"INTFLAG = ",intflag," is not supported"
         stop
       endif
-!      print *,"Got to intflag check on proc",my_id
       IF (my_id.eq.0) THEN  
       write(6,*)"Write information every NPRINT=",nprint," steps"
       write(6,*)
@@ -251,7 +241,6 @@ c read random number seed
       write(6,*)
       ENDIF
 
-!      IF (my_id.ne.0)
       call MPI_BCAST(ranseed, 1, MPI_INTEGER,
      &               0, MPI_COMM_WORLD, ierr)
 
@@ -263,12 +252,10 @@ c read trajectory conrol flag
       write(6,*)"Running ",ntraj," trajectories"
       ENDIF
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!      IF (my_id.ne.0) THEN
       call MPI_BCAST(ntraj, 1, MPI_INTEGER,
      &               0, MPI_COMM_WORLD, ierr)
       call MPI_BCAST(tflag, 4, MPI_INTEGER,
      &               0, MPI_COMM_WORLD, ierr)
-!      ENDIF
       if (ntraj.gt.mntraj) then
         IF (my_id.eq.0) write(6,*)"NTRAJ = ",ntraj," > MNTRAJ = ",mntraj
         stop
@@ -316,14 +303,12 @@ c        write(6,*)"TFLAG(1) = 4:  MSX finder"   ! Doesn't currently work
         ramptime=ramptime/autofs
         ENDIF
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(ramptime, 1, MPI_DOUBLE_PRECISION,
      &               0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(rampfact, 1, MPI_DOUBLE_PRECISION,
      &               0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(nramp, 1, MPI_INTEGER,
      &               0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
       endif
 
       if (tflag(1).eq.3) then
@@ -336,14 +321,12 @@ c       convert to 1/a.u.time
         andersen_freq=andersen_freq*autofs
         ENDIF
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(andersen_temp, 1, MPI_DOUBLE_PRECISION,
      &               0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(andersen_freq, 1, MPI_DOUBLE_PRECISION,
      &               0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(scandth, 1, MPI_DOUBLE_PRECISION,
      &               0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
         if (scandth.gt.0.d0) then
           IF (my_id.eq.0)
      &      write(6,101)"Resulting momenta scaled such that the total",
@@ -370,7 +353,6 @@ c       convert to 1/a.u.time
         write(6,*)"Restarting trajectories: ",(trajlist(k),k=1,ntraj)
         ENDIF
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!        IF (my_id.ne.0)
         call MPI_BCAST(trajlist, ntraj, MPI_INTEGER,
      &               0, MPI_COMM_WORLD, ierr)      
         maxtraj = trajlist(1)
@@ -393,7 +375,6 @@ c       convert eV to hartree
         wphoton=wphoton/autoev
         ENDIF
         call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(ntarget, 1, MPI_INTEGER,
      &               0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(ephoton, 1, MPI_DOUBLE_PRECISION,
@@ -433,11 +414,9 @@ c read number of molecules (atom groups)
       ENDIF
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!      IF (my_id.ne.0) THEN
       call MPI_BCAST(nmol, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
       call MPI_BCAST(ezero, 1, MPI_DOUBLE_PRECISION,
      &               0, MPI_COMM_WORLD, ierr)
-!      ENDIF
 
       if (nmol.gt.mnmol) then
        IF (my_id.eq.0) write(6,*)"ERROR:  nmol > mnmol, ",nmol,">",mnmol
@@ -541,7 +520,6 @@ c           convert from A to bohr
         elseif (initx(im).eq.1) then
 c       random spherical clusters
           IF (my_id.eq.0) read(5,*) rdum
-!          IF (my_id.ne.0)
           call MPI_BCAST(rdum, 1, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
           rran(1) = rdum*dble(natom(im))**(1.d0/3.d0)
@@ -571,7 +549,6 @@ c           compute total mass for this AG
           enddo
           write(6,*)
           ENDIF
-!          IF (my_id.ne.0) THEN
           call MPI_BCAST(ii, 1, MPI_INTEGER,
      &                 0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(symbol, ii, MPI_CHARACTER,
@@ -580,7 +557,6 @@ c           compute total mass for this AG
      &                 0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(mmag, nmol, MPI_DOUBLE_PRECISION,
      &                 0, MPI_COMM_WORLD, ierr)      
-!          ENDIF
         elseif (initx(im).eq.2) then
 c         normal modes
           IF (my_id.eq.0) write(6,*)
@@ -590,14 +566,12 @@ c         normal modes
 c          read(5,*)lreadhess,nmtype(im),(nmqn(k,im),k=1,ntmp),scale0im(im)
           IF (my_id.eq.0)
      &    read(5,*)lreadhess,nmtype(im),(nmqn(k,im),k=1,ntmp)
-!          IF (my_id.ne.0) THEN
           call MPI_BCAST(lreadhess, 1, MPI_LOGICAL,
      &                 0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(nmtype, nmol, MPI_INTEGER,
      &                 0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(nmqn, ntmp*nmol, MPI_DOUBLE_PRECISION,
      &                 0, MPI_COMM_WORLD, ierr)      
-!          ENDIF
 c          if (scale0im(im).gt.0.d0) then
 c            write(6,101)"Resulting momenta scaled such that the total",
 c       &     " energy = ",scale0im(im)," eV"
@@ -641,7 +615,6 @@ c           convert from A to bohr
           write(6,*)"For INITx = 2, INITp is not used and is set to -1"
           write(6,*)
           ENDIF
-!          IF (my_id.ne.0) THEN
           call MPI_BCAST(ii, 1, MPI_INTEGER,
      &                 0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(symbol, ii, MPI_CHARACTER,
@@ -652,7 +625,6 @@ c           convert from A to bohr
      &                   0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(xx0, 3*ii, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
-!          ENDIF
           initp(im) = -1
       elseif (initx(im).eq.3) then
 c       atom-diatom initial conditions
@@ -692,7 +664,6 @@ c         compute total mass for this AG
         rrad=rrad/autoang
         write(6,*)
         ENDIF
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(ii, 1, MPI_INTEGER,
      &                 0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(symbol, ii, MPI_CHARACTER,
@@ -711,7 +682,6 @@ c         compute total mass for this AG
      &                 0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(arrad, 1, MPI_DOUBLE_PRECISION,
      &                 0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
         initp(im) = -1
       elseif (initx(im).eq.4) then
 c       NOT IMPLEMENTED. DO NOT USE.
@@ -784,7 +754,6 @@ c        read(5,*)lreadhess,temp0im(im),scale0im(im),sampwell(im),
         write(6,102)"    # symb","mass (amu)","x (A)","y (A)","z (A)"
         ENDIF
  107    format(1x,a,f15.5,a)
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(lreadhess, 1, MPI_LOGICAL,
      &                 0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(nmtype, nmol, MPI_INTEGER,
@@ -803,7 +772,6 @@ c        read(5,*)lreadhess,temp0im(im),scale0im(im),sampwell(im),
      &                 0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(lems, nmol, MPI_LOGICAL,
      &                 0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
         mmag(im)=0.d0
         IF (my_id.eq.0) THEN
         do i=1,natom(im)
@@ -822,7 +790,6 @@ c         convert from A to bohr
 c          write(6,*)
         enddo
         ENDIF
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(ii, 1, MPI_INTEGER,
      &                 0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(symbol, ii, MPI_CHARACTER,
@@ -833,15 +800,12 @@ c          write(6,*)
      &                   0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(xx0, 3*ii, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)
-!        ENDIF
         if (sampwell(im).eq.2) then
           IF (my_id.eq.0) read(5,*)relwell2(im),emin2(im)
-!          IF (my_id.ne.0) THEN
           call MPI_BCAST(relwell2, nmol, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(emin2, nmol, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
-!          ENDIF
           emin2(im)=emin2(im)/autoev
           relwell1(im)=1.d0-relwell2(im)
           IF (my_id.eq.0) THEN
@@ -855,12 +819,10 @@ c          write(6,*)
             enddo
           enddo
           ENDIF
-!          IF (my_id.ne.0) THEN
           call MPI_BCAST(ii, 1, MPI_INTEGER,
      &                   0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(xx02, 3*ii, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)
-!          ENDIF
         endif
         IF (my_id.eq.0) THEN
         write(6,*)
@@ -879,7 +841,6 @@ c          write(6,*)
      &    sampfilepp(im)
         ENDIF
 c     &   sampwell(im),lems(im)
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(samptot, nmol, MPI_INTEGER,
      &                 0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(lbinsamp, nmol, MPI_LOGICAL,
@@ -890,13 +851,11 @@ c     &   sampwell(im),lems(im)
      &                   0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(lems, nmol, MPI_LOGICAL,
      &                   0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
         sampwell(im)=1
         if (sampwell(im).eq.2) then 
           IF (my_id.eq.0) 
      &     read(5,*)samptot2(im),lbinsamp2(im),sampfilexx2(im),
      &     sampfilepp2(im),relwell2(im)
-!          IF (my_id.ne.0) THEN
           call MPI_BCAST(samptot2, nmol, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(lbinsamp2, nmol, MPI_LOGICAL,
@@ -907,7 +866,6 @@ c     &   sampwell(im),lems(im)
      &                   0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(relwell2, nmol, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
-!          ENDIF
           relwell1(im)=1.d0-relwell2(im)
         endif
         if (lems(im)) then
@@ -920,7 +878,6 @@ c     &   sampwell(im),lems(im)
           emicr(im)=emicr(im)/autoev
           ENDIF
           emsw(im)=0.d0
-!          IF (my_id.ne.0) THEN
           call MPI_BCAST(emicr, nmol, MPI_DOUBLE_PRECISION,
      &                 0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(ninc, nmol, MPI_DOUBLE_PRECISION,
@@ -929,7 +886,6 @@ c     &   sampwell(im),lems(im)
      &                 0, MPI_COMM_WORLD, ierr)      
           call MPI_BCAST(nemstot, nmol, MPI_DOUBLE_PRECISION,
      &                 0, MPI_COMM_WORLD, ierr)      
-!          ENDIF
         endif
         IF (my_id.eq.0) THEN
         write(6,*)
@@ -950,7 +906,6 @@ c         convert from A to bohr
         write(6,*)"For INITx = 6, INITp is not used and is set to -1"
         write(6,*)
         ENDIF
-!        IF (my_id.ne.0) THEN
 !        call MPI_BCAST(ii, 1, MPI_INTEGER,
 !     &                 0, MPI_COMM_WORLD, ierr)      
 !        call MPI_BCAST(symbol, ii, MPI_CHARACTER,
@@ -959,7 +914,6 @@ c         convert from A to bohr
 !     &                   0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(mmag, nmol, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
         initp(im) = -1
       else
         IF (my_id.eq.0) write(6,*)
@@ -984,12 +938,10 @@ c       initial target temperature
         endif
         write(6,*)
         ENDIF
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(temp0im, nmol, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(escale0im, nmol, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
  101    format(1x,a,a,f12.5,1x,a)
       elseif (initp(im).eq.1) then
         IF (my_id.eq.0) THEN
@@ -1010,12 +962,10 @@ c         read in atomic momenta
  106      format(i5,4f12.5)
         enddo
         ENDIF
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(ii, 1, MPI_INTEGER,
      &                 0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(pp0, 3*ii, MPI_DOUBLE_PRECISION,
      &                 0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
       elseif (initp(im).eq.-1) then
         IF (my_id.eq.0) THEN
         write(6,*)"INITp = -1:  Initial momenta determined by INITx"
@@ -1041,7 +991,6 @@ c INITj
         read(5,*)samptarg(im),letot(im),sampjmin(im),sampjmax(im),
      &   sampjtemp1(im),sampjtemp2(im),sampjbrot1(im),sampjbrot2(im)
         ENDIF
-!        IF (my_id.ne.0) THEN
         call MPI_BCAST(samptarg, nmol, MPI_DOUBLE_PRECISION,
      &                 0, MPI_COMM_WORLD, ierr)      
 !        call MPI_BCAST(letot, nmol, MPI_LOGICAL,
@@ -1058,7 +1007,6 @@ c INITj
      &                 0, MPI_COMM_WORLD, ierr)      
         call MPI_BCAST(sampjbrot2, nmol, MPI_DOUBLE_PRECISION,
      &                 0, MPI_COMM_WORLD, ierr)      
-!        ENDIF
         IF (my_id.eq.0) THEN
         if (letot(im)) 
      &      write(6,*)"Initial total energy is fixed"
@@ -1082,7 +1030,6 @@ c INITj
           write(6,*)"C=",ejsc(3,im)," eV"
           write(6,*)"D=",ejsc(4,im)
           ENDIF
-!          IF (my_id.ne.0)
           call MPI_BCAST(ejsc, 4*nmol, MPI_DOUBLE_PRECISION,
      &                   0, MPI_COMM_WORLD, ierr)      
           if (sampjmin(im).lt.0.d0) then
@@ -1141,8 +1088,6 @@ c Loop over molecules
      &                 0, MPI_COMM_WORLD, ierr)      
       call MPI_BCAST(natom, nmol, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-
-!      print *,"Got to AG orientation in readin.f on proc ",my_id
 
 c AG orientational information
       IF (my_id.eq.0) THEN
@@ -1398,8 +1343,6 @@ c check for bad input combinations
         IF (my_id.eq.0)write(6,*)"POTFLAG = 1 must be used with 3 atoms"
         stop 
       endif
-
-      print *,"Got to end of readin.f on proc ",my_id
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 

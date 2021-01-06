@@ -63,11 +63,6 @@ ccccc MPI
       call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-
-      print *,"Got to driver.f on proc ",my_id
-!      print *,"nat =",nat,"on proc ",my_id
-
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       do i=1,nat
         call MPI_BCAST(symbol(i), 2, MPI_CHARACTER,
      &                 0, MPI_COMM_WORLD, ierr)
@@ -121,21 +116,11 @@ c     initial coordinates and momenta
           ppi(j,i)=pp(j,i)
         enddo
       enddo
-c MPI
-!      ENDIF
-
-      print *,"xx(1,1) = ",xx(1,1),"on proc ",my_id
-      print *,"pp(1,1) = ",pp(1,1),"on proc ",my_id
-      print *,"nsurf = ",nsurf,"on proc ",my_id
-!      print *,"mm(1) = ",mm(1),"on proc ",my_id
 
       call gettemp(pp,mm,nat,tempi,kei)
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-!      print *,"KE = ",kei," on proc ",my_id
-!      print *,"Temp = ",tempi," on proc ",my_id
       call getgrad(xx,pp,nsurf,pei,cre,cim,gv,gcre,gcim,nat,
      & phop,dmag,dvec,pem,gpem,phase)
-!      print *,"Got to 130 in driver.f on proc ",my_id
       lastgap0 = lastgap  ! TEMP AJ
       lastgap = pem(1)-pem(2)  ! TEMP AJ
       call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
@@ -169,7 +154,7 @@ c      enddo
 
       tei=kei+pei
       call ange(xx,pp,mm,nat,eig,bigji,bigjtoti,eroti,erottoti)
-c MPI
+
       IF (my_id.eq.0) THEN
       write(6,106)"Initial overall ang momentum = ",bigjtoti," au"
       write(6,106)"Initial overall rot energy   = ",erottoti*autoev,
@@ -187,6 +172,7 @@ c MPI
       endif
       write(6,*)
       ENDIF
+
  106  format(1x,a,f15.5,1x,a)
  107  format(1x,a,3f12.5,1x,a)
 
@@ -319,7 +305,6 @@ c     converge gradient (TERMFLAG = 2)
         enddo
         enddo
         if (gvmag.le.t_gradmag**2) then
-c MPI
           IF (my_id.eq.0) THEN
           write(6,*)"Gradient converged to ",
      &               dsqrt(gvmag)*autoev/autoang,"eV/A"
@@ -328,14 +313,13 @@ c MPI
             write(*,1090)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
  1090       format(a2,f15.6,3f21.8)
           enddo
-c MPI
           ENDIF
+
           tmp1=-1.d0
           tmp2=-1.d0
           call addrot(pp,xx,mm,nat,tmp1,tmp2,sampjbrot1,sampjbrot2,
      &       tmp3,tmp4,dum3)
 
-c MPI
           IF (my_id.eq.0) THEN
           if (lwrite(77)) then  ! special output file
             open(77,file="dint.geo") 
@@ -346,7 +330,6 @@ c MPI
            write(77,1090)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
             enddo
           endif
-c MPI
           ENDIF
 
           go to 999
@@ -467,11 +450,9 @@ c      if (step*autofs.lt.1.d-2) then
 c         outcome=0
 c         go to 999
 c      endif
-c MPI
       IF (my_id.eq.0) THEN
         if (lwrite(85)) write(85,*)
         if (lwrite(85)) write(85,*)ithistraj,istep,time*autofs
-c MPI
       ENDIF
 
 c transport
@@ -593,7 +574,7 @@ c     &  (taup(i)*autofs,i=1,3),
      &  plzx,elzx*autoev,hlzx*autocmi,glzx,
      &  vlzx*autoev,pairyx(1),pairyx(2)
 c     &  r1x,r2x,a123x,vlzx*autoev,pairyx(1),pairyx(2)
-!      print *,"CROSS",plzx,pairyx,pairy,pairy0
+c      print *,"CROSS",plzx,pairyx,pairy,pairy0
       lastcross=time
 c      ijk=1
       else
@@ -609,7 +590,6 @@ c      ijk=1
       endif
 
       call getrel(rcom,ecom)
-c MPI
       IF (my_id.eq.0) THEN
       if (lwrite(90)) 
      &  write(90,'(i5,10f15.5)')ithistraj,time*autofs,
@@ -620,7 +600,6 @@ c MPI
          evdw=tmpprint(1)
          rvdw=tmpprint(2)
       endif
-c MPI
       ENDIF
 
 c Stop at the first DMAG minimum
@@ -961,7 +940,6 @@ c ######################################################################
 
  999  continue
 
-c MPI
       IF (my_id.eq.0) THEN
         if (lwrite(16)) 
      &   write(16,'(2f13.5,2e18.5,3e18.5)')time*autofs,1.d4,
@@ -1012,7 +990,6 @@ c write final coordinates and momenta to output
       endif
 
       if (lwrite(91)) write(91,*)ithistraj,rvdw*autoang,evdw*autocmi
-c MPI
       ENDIF
 
  1001 return

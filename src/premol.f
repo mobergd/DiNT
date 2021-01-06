@@ -21,9 +21,6 @@ ccccc MPI
       call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
       call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
 
-      print *,"Got to premol.f on proc ",my_id
-
-c MPI
       IF (my_id.eq.0) THEN
         write(6,*)"Precomputing info for AG ",im
         write(6,*)"------------------------------"
