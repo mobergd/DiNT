@@ -1,9 +1,68 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
+
 c COMMON BLOCKS FOR FREQUENTLY USED VARIABLES THAT ARE THE SAME FOR ALL
 c TRAJECTORIES
 
 c Note: When "i" is an index, the array runs over atom groups,
 c   and when "j" is an index, the array runs over atoms,
 c   and when "k" is an index, the array runs over surfaces.
+
+
+c **********************************************************************
+c  MPI VARIABLES
+c **********************************************************************
+c my_rank    Rank of processor
+c my_itraj   The start # of the trajectory of this processor 
+c my_ntraj   The end # of the trajectory of this processor
+c nproc      Total number of prcoessor
+c job_path   The absolute path of the folder you submit the job. This wll be got from pwd()
+c work_path  The current working path for each processor. If DINT_TMP_DIR is defined, 
+c            work_path equals to $DINT_TMP_DIR plus a processor number
+c            e.g if DINT_TMP_DIR="/home/work", then for rank 1 processor,
+c            there will be work_path="/home/work/001". If DINT_TMP_DIR is not defined,
+c            work_path will be a created folder named by the rank number under the job_path.
+c ltmpdir    If true, it means the DINT_TMP_DIR is not a null string 
+c ldeltmp    If true, the tmp_path will be deleted after the calculation
+c            This variable can be set by the sysytem enviroment variable 
+c            DINT_DELETE_TMP. It can be set to be yes or no in lower letter.
+c            e.g. " export DINT_DELETE_TMP=yes"  or
+c                 " export DINT_DELETE_TMP=no"
+        integer my_rank, my_itraj, my_ntraj, nproc
+        character(len=256) :: work_path, job_path
+        logical  ltmpdir,ldeltmp 
+        common/c_mpi/my_rank, my_itraj, my_ntraj, nproc, work_path, 
+     &          job_path, ltmpdir, ldeltmp
+
 
 
 c **********************************************************************
@@ -46,13 +105,12 @@ c             converted to au)
 c ezeroim(i)  zero of energy for each AG, this value is used to correct
 c             the zero of energy for each atom group (input in eV,
 c             converted to au)
-c emin2(i)    energy of the classical minimum for each well (input in eV)
 
       double precision ezero
-      double precision mm(mnat),mmag(mnmol),emin2(mnmol),ezeroim(mnmol)
+      double precision mm(mnat),mmag(mnmol),ezeroim(mnmol)
       integer nsurft,nmol,nat,natom(mnmol),iatom(mnmol)
       character*2 symbol(mnat)
-      common/c_sys/ezero,ezeroim,mm,mmag,emin2,nsurft,nmol,nat,
+      common/c_sys/ezero,ezeroim,mm,mmag,nsurft,nmol,nat,
      &             natom,iatom,symbol
 c **********************************************************************
 
@@ -66,8 +124,7 @@ c initp(i)   Initial conditions flag for AG i (momenta)
 c initj(i)   Initial conditions flag for AG i (ang mom)
 c xx0(3,j)   Initial coordinates, read by readin (input in A, converted 
 c            immediately to bohr)
-c pp0(3,j)   Initial momenta, read by readin (input in au)
-c xx02(3,j)   Initial coordinates for min of PE weel 2, optional, for INITx=8 
+c pp0(3,j)   Initial momenta, read by readin (input in au) 
 c rran(3)    Numbers used to generate randum clusters if INITx = 1 (input in 
 c            angstroms, converted immediately to bohr)
 c temp0im(i) Target temperature of AG i when INITp = 0 (Kelvin)
@@ -102,10 +159,6 @@ c rturn(m,i)   Normal mode turning points for the m^th normal mode
 c ewell(i)    Energy of the initial structure when using normal mode method for initial
 c            conditions.  Should correspond to the energy of the bottom of some well.
 c lreadhess  T=read Hessian from fort.70. F=compute Hessian numerically from gradients
-c nmvec2(3,j,m,i)
-c freq2(m,i)
-c rturn2(m,i)
-c ewell2(i)  similar variables for EMS sampling from 2 PE wells    
 
 c The following are used for diatom initial conditions (INITx = 4)
 c vvdi(i)        Initial vibrational quantum number of the diatom for AG i
@@ -115,26 +168,23 @@ c rmindi(i)      Guess at min diatomic separation for AG i, will be refined by c
 c The following are used for reading initial conditions from a separate file (INITx=6)
 c samptot(i)     Total number of samples contained in the separate file
 c lbinsamp(i)    Samples files binary (direct access) or not
-c lbinsamp2(i)   Samples files binary or not for second PE well
 c sampfile(i)    Filename containing sampled data
-c sampfile2(i)   Filename containing sampled data for the second PE well
-c sampwell(im)   Number of wells to sample from
-c relwell(im)    Weights for sampling from each well
-c lems(im)       If true use EMS
-c emicr(im)      Total energy of the microcanonical ensemble 
-c nemstot(im)    Total number of points to output using EMS (efficient microcan. sampl.)
-c ninc(im)       Incubation number of steps for EMS
-c nbrea(im)      Number of steps in between points(trajectories) sampled in EMS
-c emsw(im)       last calculated weight in EMS 
+c lems(i)        If true use EMS
+c emicr(i)       Total energy of the microcanonical ensemble 
+c nemstot(i)     Total number of points to output using EMS (efficient microcan. sampl.)
+c ninc(i)        Incubation number of steps for EMS
+c nbrea(i)       Number of steps in between points(trajectories) sampled in EMS
+c emsw(i)        last calculated weight in EMS 
+c lnorot(i)      If true, remove rotation. Equals to J=0 ensemble. 
 
 c The following are used for photoexcited trajectories (TFLAG(3) = 1)
-c ntarget     The target electronic state
-c ephoton     The photon energy in au
-c wphoton     The photon width / 2 in au (i.e., trajectories are excited 
-c             if the electronic energy gap is ephoton +/- wphoton)
+c ntarget        The target electronic state
+c ephoton        The photon energy in au
+c wphoton        The photon width / 2 in au (i.e., trajectories are excited 
+c                if the electronic energy gap is ephoton +/- wphoton)
 
       integer nsurf0,initx(mnmol),initp(mnmol),initj(mnmol)
-      double precision xx0(3,mnat),pp0(3,mnat),rran(3),xx02(3,mnat),
+      double precision xx0(3,mnat),pp0(3,mnat),rran(3),
      &    temp0im(mnmol),escale0im(mnmol),scale0im(mnmol),emicr(mnmol)
 
       integer vvad,jjad,arrad
@@ -144,44 +194,39 @@ c             if the electronic energy gap is ephoton +/- wphoton)
 
       integer nmtype(mnmol)
       double precision nmvec(3,mnat,3*mnat,mnmol),freq(3*mnat,mnmol),
-     & rturn(3*mnat,mnmol),ewell(mnmol),nmqn(3*mnat,mnmol),
-     & nmvec2(3,mnat,3*mnat,mnmol),freq2(3*mnat,mnmol),
-     & rturn2(3*mnat,mnmol),ewell2(mnmol)
-      logical lreadhess,lbinsamp(mnmol),lbinsamp2(mnmol),lems(mnmol),
-     & letot(mnmol)
+     & rturn(3*mnat,mnmol),ewell(mnmol),nmqn(3*mnat,mnmol)
+      logical lreadhess,lbinsamp(mnmol),lems(mnmol),
+     & letot(mnmol),lnorot(mnmol) 
 
       double precision rmindi(mnmol),vvdi(mnmol),jjdi(mnmol),
      &    rindi(mnmol),routdi(mnmol),taudi(mnmol),xtaudi(mnmol)
 
-      integer samptot(mnmol),samptot2(mnmol),nemstot(mnmol),
-     & sampwell(mnmol),ninc(mnmol),nbrea(mnmol)
+      integer samptot(mnmol),nemstot(mnmol),
+     & ninc(mnmol),nbrea(mnmol)
       character*10 sampfilexx(mnmol),sampfilepp(mnmol)
-      character*10 sampfilexx2(mnmol),sampfilepp2(mnmol)
       double precision samptarg(mnmol),sampjmin(mnmol),sampjmax(mnmol),
      & sampjtemp1(mnmol),sampjtemp2(mnmol),
      & sampjbrot1(mnmol),sampjbrot2(mnmol),
-     & relwell1(mnmol),relwell2(mnmol),ejsc(4,mnmol),emsw(mnmol)
+     & ejsc(4,mnmol),emsw(mnmol)
 
       integer ntarget
       double precision ephoton,wphoton
 
-      common/c_initial/xx0,pp0,rran,xx02,
+      common/c_initial/xx0,pp0,rran,
      & temp0im,escale0im,scale0im,emicr,escatad,rrad,rinad,routad,
      & tauad,bmaxad,bminad,pprelad,ecolad,easym,rasym,
      & nmvec,nmqn,freq,rturn,ewell,
-     & nmvec2,freq2,rturn2,ewell2,
      & rmindi,vvdi,jjdi,rindi,routdi,taudi,xtaudi,
      & ephoton,wphoton,
      & samptarg,sampjmin,sampjmax,sampjtemp1,sampjtemp2,emsw,
-     & sampjbrot1,sampjbrot2,ejsc,relwell1,relwell2,
+     & sampjbrot1,sampjbrot2,ejsc,
      & sampfilexx,sampfilepp,
-     & sampfilexx2,sampfilepp2,
      & ntarget,
      & nsurf0,initx,initp,initj,
      & vvad,jjad,arrad,
      & nmtype,
-     & samptot,samptot2,nemstot,sampwell,ninc,nbrea,
-     & lreadhess,lbinsamp,lbinsamp2,lems,letot
+     & samptot,nemstot,ninc,nbrea,
+     & lreadhess,lbinsamp,lems,letot
 c **********************************************************************
 
 
@@ -229,12 +274,18 @@ c t_r(o) = For TERMFLAG = 3, Termination distance, input in A,
 c          immediately converted to bohr.  
 c t_nstep = Maximum number of steps for each trajectory.
 c lwell = 0 geoms in one PE well are not selected, 1-acetylene, 2-vinyledene
+c lchkdis = If true, check whether distances are less than 95% of the dissociation
+c           termination distances. If the monitored distances are less than 95% of
+c           the dissociation termination distances, the termination condition will 
+c           not be checked and program will contiune to run.  
 
       double precision t_stime,t_gradmag,t_r(mnoutcome)
       integer termflag,t_nstep,t_noutcome,lwell
       character*2 t_symb(mnoutcome,2)
+      logical lchkdis
       common/c_term/
-     & t_r,t_stime,t_gradmag,termflag,t_nstep,t_noutcome,t_symb,lwell
+     & t_r,t_stime,t_gradmag,termflag,t_nstep,t_noutcome,t_symb,lwell,
+     & lchkdis
 c **********************************************************************
 
 

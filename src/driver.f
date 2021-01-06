@@ -1,3 +1,35 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
+
       subroutine driver
 
 c Computes a full trajectory from start to finish.
@@ -8,7 +40,8 @@ c Computes a full trajectory from start to finish.
       include 'c_traj.f'
       include 'c_ran.f'
       include 'c_output.f'
-c hack
+
+c     temporary use information
       common/tmp/tmpprint
       double precision tmpprint(50)
       double precision taup(3),taup2(3)
@@ -21,14 +54,14 @@ c     number of bins for binning the radial distribution function
       parameter(nbinrad=60)
 
       integer i,j,k,ii,iturn,i1,i2,ithistraj,frusflag(mnsurf),
-     &  newsurf,iramp,ncross
-      double precision rminmax,ravg,ce,hrad,dot,peim
+     &  newsurf,iramp,ncross,nbz2
+      double precision rminmax,ravg,ce,hrad,dot,peim,tbz2,tbz0,tbzf
       double precision rr(3),rhor(mnsurf,mnsurf),eig(3),dum3(3),
      &  rhoi(mnsurf,mnsurf),step,timeprev,phop(mnsurf),tmp1,tmp2,tmp3,
      &  dmag,dmag1,dmag2,gvmag,rrr,rmax(mnoutcome),rmin(mnoutcome),
      &  dvec(3,mnat,mnsurf,mnsurf),gpem(3,mnat,mnsurf),
-     &  arij(mnat,mnat),arij2(mnat,mnat),lind,
-     &  raddist(0:nbinrad+1),egap,rtmp,rcom,tmp4,ecom,
+     &  arij(mnat,mnat),arij2(mnat,mnat),lind,ppp(3),ppy,ppm,
+     &  raddist(0:nbinrad+1),egap,rtmp,rcom,tmp4,ecom,ecom2,
      &  lastgap0,lastgap,plz,plz0,elz,plzx,elz0,elzx,lastcross,
      &  hlz,hlz0,hlzx,glz,glzx,glz0,r1,r10,r1x,r2,r20,r2x, 
      7  a123,a1230,a123x,r3,vlz,vlz0,vlzx,pairy(2),pairy0(2),pairyx(2)
@@ -66,7 +99,6 @@ c initialize for this trajectory
       time = 0.d0
       stodecotime = -1.d0
       stodecotau = 4.d0/autofs
-      iturn = 0
       dmag1 = 0.d0
       dmag2 = 0.d0
       do i=1,nsurft
@@ -92,7 +124,11 @@ c initialize for this trajectory
       istepw = 0
       step = 0.d0
 
-c PIMD/RPMD add initialization
+      if (lchkdis.eq..true.) then
+        iturn = 0
+      else
+        iturn =1
+      endif
 
 c calculate and save initial values of things for later analysis
 c     initial coordinates and momenta
@@ -108,33 +144,6 @@ c     initial coordinates and momenta
       lastgap0 = lastgap  ! TEMP AJ
       lastgap = pem(1)-pem(2)  ! TEMP AJ
       call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
-
-c if initx=2 or 5 and scale0im>0 scale momenta to etot=scale0im
-c      do im=1,nmol
-c      if (ldofrag) then
-c         peim=peagi(im)
-c      else
-c         peim=pei
-c      endif
-c      if (initx(im).eq.2.or.initx(im).eq.5) then 
-c        if (scale0im(im).gt.0.d0.and.pei.lt.scale0im(im)) then
-c          do i=1,natom(im)
-c          ii=i+iatom(im)
-c          do j=1,3
-c             pp(j,ii)=pp(j,ii)-compp(j,im)*mm(ii)/mmag(im)
-c             pp(j,ii)=pp(j,ii)*dsqrt((scale0im(im)-peim)/(kei-erelqc))
-c             pp(j,ii)=pp(j,ii)+compp(j,im)*mm(ii)/mmag(im)
-c          enddo
-c          enddo
-c          call gettemp(pp,mm,nat,tempi,kei)
-c          call getgrad(xx,pp,nsurf,pei,cre,cim,gv,gcre,gcim,nat,
-c     &     phop,dmag,dvec,pem,gpem,phase)
-c      else if (scale0im(im).gt.0.d0.and.pei.gt.scale0im(im)) then
-c        ldriver=0
-c        go to 1001
-c      endif
-c      endif
-c      enddo
 
       tei=kei+pei
       call ange(xx,pp,mm,nat,eig,bigji,bigjtoti,eroti,erottoti)
@@ -161,16 +170,16 @@ c photoexcite
         egap = dabs(pem(ntarget)-pem(nsurf))
         if (dabs(egap-ephoton).lt.wphoton) then
 c         successful excitation
-          print *,"Exciting from state ",nsurf," to state ",ntarget,
+          write(6,*)"Exciting from state ",nsurf," to state ",ntarget,
      &               " with a photon energy of ",egap*autoev
           nsurf=ntarget
           pei = pem(nsurf)
           tei = kei + pei
           call initelec
         else
-          print *,"Unsuccessful excitation"
-          print *,"Egap = ",egap*autoev," eV"
-          print *,"Photon energy = ",ephoton*autoev," +/- ",
+          write(6,*)"Unsuccessful excitation"
+          write(6,*)"Egap = ",egap*autoev," eV"
+          write(6,*)"Photon energy = ",ephoton*autoev," +/- ",
      &             wphoton*autoev," eV"
           outcome = -2
           go to 999
@@ -186,17 +195,19 @@ c get trajectory index
 
 c write initial coordinates and momenta to output
       if (lwrite(10)) then
-      open(10)
-      write(10,*)ithistraj,pei*autoev
+      write(10,*)ithistraj
+      write(10,*)1,pei*autoev
       do i=1,nat
-      write(10,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
+c      write(10,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
+      write(10,1010)symbol(i),(xx(j,i)*autoang,j=1,3)
       enddo
       endif
       if (lwrite(11)) then
-      open(11)
-      write(11,*)ithistraj,kei*autoev
+      write(11,*)ithistraj
+      write(11,*)1,kei*autoev
       do i=1,nat
-      write(11,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
+c      write(11,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
+      write(11,1010)symbol(i),(pp(j,i),j=1,3)
       enddo
       endif
 
@@ -244,6 +255,8 @@ c trajectory output
 c ######################################################################
 c INTEGRATE TRAJECTORY
 c ######################################################################
+      call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,  ! HACK
+     &   phop,dmag,dvec,pem,gpem,phase)
       do 10 while (.true.)
       istep = istep + 1      
 
@@ -307,47 +320,45 @@ c     monitor bond dissociation (TERMFLAG = 3)
       if (termflag.eq.3) then
 c       find maximum and minimum bond distance corresponding to each outcome
         do k=1,t_noutcome
-        rmax(k) = 0.d0
-        rmin(k) = 1000.d0
+          rmax(k) = 0.d0
+          rmin(k) = 1000.d0
         enddo
-        do i1=1,nat
-        do i2=i1+1,nat
-          do k=1,t_noutcome
-            if ( ( t_symb(k,1).eq.symbol(i1).and.
-     &             t_symb(k,2).eq.symbol(i2)      ) .or.
-     &           ( t_symb(k,1).eq.symbol(i2).and.
-     &             t_symb(k,2).eq.symbol(i1)      ) ) then
-              rrr = 0.d0
-              do j=1,3
-              rrr = rrr + (xx(j,i1)-xx(j,i2))**2
-              enddo
-              rrr = dsqrt(rrr)
-c              if (rmax(k).lt.rrr.and.t_r(k).gt.0.d0) then
-              if (rmax(k).lt.rrr) then
-                rmax(k) = rrr
-                if (t_r(k).gt.0.d0) then
-                aind(k,1) = i1
-                aind(k,2) = i2
+
+        do k=1,t_noutcome
+          if ( ( t_symb(k,1).eq.'cm'.and.
+     &      t_symb(k,2).eq.'cm'      ) ) then
+            call getrel(rcom,ecom)
+            rmin(k)=rcom
+            rmax(k)=rcom
+          endif
+          do i1=1,nat
+            do i2=i1+1,nat
+              if ( ( t_symb(k,1).eq.symbol(i1).and.
+     &               t_symb(k,2).eq.symbol(i2)      ) .or.
+     &             ( t_symb(k,1).eq.symbol(i2).and.
+     &               t_symb(k,2).eq.symbol(i1)      ) ) then
+                rrr = 0.d0
+                do j=1,3
+                  rrr = rrr + (xx(j,i1)-xx(j,i2))**2
+                enddo
+                rrr = dsqrt(rrr)
+                if (rmax(k).lt.rrr) then
+                  rmax(k) = rrr
+                  if (t_r(k).gt.0.d0) then
+                    aind(k,1) = i1
+                    aind(k,2) = i2
+                  endif
+                endif
+                if (rmin(k).gt.rrr) then
+                  rmin(k) = rrr
+                  if (t_r(k).lt.0.d0) then
+                    aind(k,1) = i1
+                    aind(k,2) = i2
+                  endif
                 endif
               endif
-c              if (rmin(k).gt.rrr.and.t_r(k).lt.0.d0) then
-              if (rmin(k).gt.rrr) then
-                rmin(k) = rrr
-                if (t_r(k).lt.0.d0) then
-                aind(k,1) = i1
-                aind(k,2) = i2
-                endif
-              endif
-c              print *,i1,i2,rrr*autoang,rmin(k)*autoang,rmax(k)*autoang
-            endif
-            if ( ( t_symb(k,1).eq.'cm'.and.
-     &             t_symb(k,2).eq.'cm'      ) ) then
-              call getrel(rcom,ecom)
-              rmin(k)=rcom
-              rmax(k)=rcom
-            endif
+            enddo
           enddo
-        enddo
         enddo
 
 c       ITURN starts each trajectory at 0
@@ -356,21 +367,17 @@ c             dissociation termination distances
 c       This prevents the trajectories from "dissociating" before the collision
         if (iturn.eq.0) then
           iturn = 1
-c         print *,rmax(1)*autoang,t_r(1)*autoang,tmpprint(2)*autoang
+c         write(6,*)rmax(1)*autoang,t_r(1)*autoang,tmpprint(2)*autoang
           do k=1,t_noutcome
             if (rmax(k).gt.0.95d0*t_r(k).and.t_r(k).gt.0.d0) iturn = 0
           enddo
         endif
 c       monitor dissociation
-c          iturn = 1   ! TEMP HACK AJ
         if (iturn.eq.1) then
           do k=1,t_noutcome
             rtmp=rmax(k)
             if (t_symb(k,2).eq.'x') rtmp=rmin(k)
-c            if (k.eq.1) rtmp=rmin(k)  ! TEMP HACK AJ
-c       print *,k,rmin(k)*autoang,rmax(k)*autoang,iturn,t_r(k)*autoang
             if (rtmp.gt.t_r(k).and.t_r(k).gt.0.d0) then
-c           intercept FSTU trajectories that are still looking to unfrustrate
             if (lfrust) then
             else
               outcome = k
@@ -382,14 +389,8 @@ c           intercept FSTU trajectories that are still looking to unfrustrate
 c       monitor association
         do k=1,t_noutcome
           if (rmin(k).lt.dabs(t_r(k)).and.t_r(k).lt.0.d0) then
-c TMP AJ for CO2 association
-c            call getrho(cre,cim,rhor,rhoi,nsurft)
-c            if (rhor(1,1).gt.0.99d0) then   ! CSDM or FS/SD
-c            if (nsurf.eq.1) then    ! FS
-c TMP AJ
             outcome = k
             go to 999
-c            endif
           endif
         enddo
       endif
@@ -426,7 +427,7 @@ c transport
 c      rtmp=xx(1,1)**2+xx(2,1)**2+xx(3,1)**2
 c      rtmp=rtmp/6.d0
 c      rtrans=(rtrans*(time-step)+rtmp*step)/time
-c      if (mod(istep,1000).eq.0) print *,"D = ",rtrans/time
+c      if (mod(istep,1000).eq.0) write(6,*)"D = ",rtrans/time
 
 c ramp temperature
       if (tflag(1).eq.2) then
@@ -539,7 +540,7 @@ c     &  (taup(i)*autofs,i=1,3),
      &  plzx,elzx*autoev,hlzx*autocmi,glzx,
      &  vlzx*autoev,pairyx(1),pairyx(2)
 c     &  r1x,r2x,a123x,vlzx*autoev,pairyx(1),pairyx(2)
-!      print *,"CROSS",plzx,pairyx,pairy,pairy0
+!      write(6,*)"CROSS",plzx,pairyx,pairy,pairy0
       lastcross=time
 c      ijk=1
       else
@@ -555,11 +556,33 @@ c      ijk=1
       endif
 
       call getrel(rcom,ecom)
-      if (lwrite(90)) 
-     &  write(90,'(i5,10f15.5)')ithistraj,time*autofs,
-     & tmpprint(2)*autoang,
+      
+c HACK
+      do j=1,3
+      ppp(j)=0.d0
+      do i=1,natom(1)
+      ppp(j)=ppp(j)+pp(j,i)  ! com
+      enddo
+      enddo
+      ppy=0.d0
+      do i=1,natom(1)
+      ppy=ppy+mm(i)
+      enddo
+      ke=0.d0
+      do i=1,natom(1)
+      do j=1,3
+         ke = ke + 0.5d0*(pp(j,i)-ppp(j)*mm(i)/ppy)**2/mm(i)
+      enddo
+      enddo
+c HACK
+      if ( (mod(istep,nprint).eq.0.or.istep.eq.1) .and. lwrite(90) )
+     &  write(90,'(i5,19f15.5)')ithistraj,time*autofs,
+     &  tmpprint(2)*autoang,
      &  tmpprint(1)*autocmi,
-     &  ecom*autocmi,(tmpprint(1)+ecom)*autocmi
+     &  ecom*autocmi,(tmpprint(1)+ecom)*autocmi,
+     &  tmpprint(11)*autocmi,
+     &  ke*autocmi,(tmpprint(11)+ke)*autocmi
+c     &  ecom2*autocmi,(tmpprint(11)+ecom2)*autocmi
       if (tmpprint(1).lt.evdw) then
          evdw=tmpprint(1)
          rvdw=tmpprint(2)
@@ -816,11 +839,11 @@ c molden format
        endif
        if (lwrite(80)) then
           write(80,*)nat
-          write(80,1081)istep,pe
+          write(80,1081)istep,pe,time*autofs
           do i=1,nat
             write(80,1080)symbol(i),(xx(j,i)*autoang,j=1,3)
- 1080       format(a2,3f15.5)
- 1081       format(i7,50f15.5)
+ 1080       format(a2,3E18.8)
+ 1081       format(i7,3E18.8)
           enddo
        endif
        if (lwrite(82)) write(82,REC=nistep)nat,istep,pe,
@@ -851,7 +874,7 @@ c molden format
            if (lwrite(89)) write(89,REC=nistepw)nat,istepw,pe,
      &      (symbol(i),i=1,nat),((pp(j,i),j=1,3),i=1,nat)
          else if (welli.eq.3) then 
-           print *,"welli=",welli," not supported"
+           write(6,*)"welli=",welli," not supported"
          endif
        endif
        if (lwrite(42)) call honey(ithistraj,xx,nat,time)
@@ -909,6 +932,10 @@ c ######################################################################
      & (taup2(i)*autofs,i=1,3)
 
 c trajectory has ended
+      if (lwrite(96))
+     & write(96,1096)ithistraj,outcome,nbz2,2.d0*bqci/bmaxqc,
+     & tbz2*autofs,tbz0*autofs,tbzf*autofs
+ 1096  format(3i5,10f15.3)
 
 c write final coordinates and momenta to output
       IF (outcome.ge.0) THEN

@@ -1,3 +1,35 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
+
       subroutine ransamp(lbins,ifems,ntot,filex2,filep2,nn,xx,pp,molpe)
 
 
@@ -15,7 +47,7 @@ c in/out
       logical lbins,ifems
 
 c local
-      integer n,i,j,nrcl,itmp1,itmp2
+      integer n,i,j,nrcl,itmp1,itmp2, istep
       double precision r
       character*2 ctmp(nn)
 
@@ -23,10 +55,10 @@ c local
       r=r*dble(ntot)
       n=nint(r)
 
-      filexx="../r0/" // filex2
-      filepp="../r0/" // filep2
-c      filexx=filex2
-c      filepp=filep2
+c      filexx="../r0/" // filex2
+c      filepp="../r0/" // filep2
+      filexx=filex2
+      filepp=filep2
 
       write(6,*)"Reading sample ",n
 
@@ -57,7 +89,7 @@ c      filepp=filep2
           enddo
         enddo
         read(93,*)
-        read(93,*)
+        read(93,*)istep,molpe
         do j=1,nn
           read(93,*)dum,xx(1,j),xx(2,j),xx(3,j)
           xx(1,j)=xx(1,j)/autoang
@@ -89,7 +121,7 @@ c      filepp=filep2
           enddo
         enddo
         read(94,*)
-        read(94,*)dum,molpe
+        read(94,*)istep,molpe
         do j=1,nn
           read(94,*)dum,pp(1,j),pp(2,j),pp(3,j)
         enddo

@@ -1,3 +1,35 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
+
       subroutine nmpot(symb,xx0,mm,nclu,nn,vec,repflag,nsurft,d,
      & itype,mcpar,v)
 
@@ -68,56 +100,17 @@ c get energy
       endif
       enddo
 
-c MINIMIZE GAP TO MSX  TEMP AJ AJ AJ
-      go to 10 ! SKIP
-      gtmp=0.d0
-      do i=1,nclu
-      do j=1,3
-        gtmp=gtmp+((gpemd(j,i,1,1)-gpemd(j,i,2,2))**2)*mu/mm(i)
-      enddo
-      enddo
-      gtmp=dsqrt(gtmp) 
-      maxstep=50
-      do im=1,maxstep
-      if (dabs(v(2)-v(1))*autoev.lt.0.01d0) go to 10
-      print *,'min',im,v(1)*autoev,v(2)*autoev,0.5d0*(v(1)+v(2))*autoev,
-     &   (v(1)-v(2))*autoev 
-      gtmp=0.d0
-      gtmp1=0.d0
-      do i=1,nclu
-      do j=1,3
-        gtmp=gtmp+((gpemd(j,i,1,1)-gpemd(j,i,2,2))**2)*mu/mm(i)
-        gtmp1=gtmp1+((gpemd(j,i,1,1)-gpemd(j,i,2,2))**2)
-      enddo
-      enddo
-      gtmp=dsqrt(gtmp) 
-      gtmp1=dsqrt(gtmp1) 
-      do i=1,nclu
-      do j=1,3
-        xx(j,i)=xx(j,i)-2.d0*(v(2)-v(1))
-     *    *(gpemd(j,i,2,2)-gpemd(j,i,1,1))/gtmp1
-      enddo
-      enddo
-      call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symb)
-      do i=1,nsurft
-        v(i) = pemd(i,i)
-      enddo
-      enddo
-c MINIMIZE GAP TO MSX  TEMP AJ AJ AJ
+c          write(80,*)nclu
+c          write(80,1081)0,v(1)*autoev,v(2)*autoev,gtmp,
+c     & pemd(1,2)*autocmi
+c          do i=1,nclu
+c            write(80,1080)symb(i),(xx(j,i)*autoang,j=1,3)
+c 1080       format(a2,3f15.5)
+c 1081       format(i7,50f15.5)
+c          enddo
 
- 10   continue
-
-          write(80,*)nclu
-          write(80,1081)0,v(1)*autoev,v(2)*autoev,gtmp,
-     & pemd(1,2)*autocmi
-          do i=1,nclu
-            write(80,1080)symb(i),(xx(j,i)*autoang,j=1,3)
- 1080       format(a2,3f15.5)
- 1081       format(i7,50f15.5)
-          enddo
-
-      gapgrad=gtmp
-      h12=pemd(1,2)
+c      gapgrad=gtmp
+c      h12=pemd(1,2)
 
       return
       end

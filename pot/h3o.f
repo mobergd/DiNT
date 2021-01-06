@@ -126,8 +126,8 @@
 
       implicit double precision(a-h,o-z)
       dimension r(n*(n-1)/2)
-      parameter(mcoef=1000)
-      parameter(mterm=10000)
+      parameter(mcoef=2500)
+      parameter(mterm=20000)
       parameter(mpairs=10)
       dimension coef(mcoef),ind(mterm,mpairs),ibasis(mterm)
       character dum

@@ -1,3 +1,35 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
+
       subroutine noang(xx,pp,mm,natom)
 
 c Remove the component of PP that corresponds to overall rotation.
@@ -61,13 +93,13 @@ c compute moment of intertia matrix mom
       mom(3,1)=mom(1,3)
       mom(3,2)=mom(2,3)
 
-c      print *,"mom"
-c      print *,(mom(1,j),j=1,3)
-c      print *,(mom(2,j),j=1,3)
-c      print *,(mom(3,j),j=1,3)
+c      write(6,*)"mom"
+c      write(6,*)(mom(1,j),j=1,3)
+c      write(6,*)(mom(2,j),j=1,3)
+c      write(6,*)(mom(3,j),j=1,3)
 
 c      call angmom(xx,pp,mm,natom,bigj,bigjtot)
-c      print *,"j",bigj,bigjtot
+c      write(6,*)"j",bigj,bigjtot
 
 c     diagonalize the mom matrix
       do i=1,3
@@ -77,12 +109,12 @@ c     diagonalize the mom matrix
       enddo
       call dspev( 'v','u',3,ap,eig,rot,3,work,info )
 
-c      print *,"rot"
-c      print *,(rot(1,j),j=1,3)
-c      print *,(rot(2,j),j=1,3)
-c      print *,(rot(3,j),j=1,3)
-c      print *,"eig"
-c      print *,(eig(j),j=1,3)
+c      write(6,*)"rot"
+c      write(6,*)(rot(1,j),j=1,3)
+c      write(6,*)(rot(2,j),j=1,3)
+c      write(6,*)(rot(3,j),j=1,3)
+c      write(6,*)"eig"
+c      write(6,*)(eig(j),j=1,3)
 
 c rotate to diagonalize mom
       do i=1,natom
@@ -101,7 +133,7 @@ c rotate to diagonalize mom
       enddo
 
       call angmom(xx,pp,mm,natom,bigj,bigjtot)
-c      print *,bigj,bigjtot
+c      write(6,*)bigj,bigjtot
 
 c omega = inverse of moment of intertia matrix dotted into total angular momentum vector
 c omega = I-1 . J

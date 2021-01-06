@@ -1,3 +1,35 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
+
       subroutine vwkb2(mm,edia,xj,xv,rin,rout,nsurf,symb)
 
 c Computes the WKB vibrational action at the energy EDIA and
@@ -12,7 +44,7 @@ c conditions method (INITx = 3) only.  From NAT8.1.
      &  v,rin,rout,rmass,term,r,rmid,rdif,xj
       character*2 symb(mnat)
 
-c      print *,"aj in vwkb2"
+c      write(6,*)"aj in vwkb2"
       
       ncheb = 12
       do 5 i = 1,ncheb
@@ -22,9 +54,9 @@ c      print *,"aj in vwkb2"
     5 continue
 
       call turn2(mm,edia,xj,rin,rout,nsurf,symb)
-c      print *,'turning points',rin,rout
+c      write(6,*)'turning points',rin,rout
       if (rin .gt. rout) then                                  
-        print*,'Outer turning point smaller than inner turning',
+        write(6,*)'Outer turning point smaller than inner turning',
      &      ' point in vwkb, trajectory'
         stop
       else if ((rout - rin) .lt. 1.d-5) then
@@ -36,11 +68,11 @@ c      print *,'turning points',rin,rout
         do 10 i = 1,ncheb
           r = rmid+rdif*x(i)
           call diapot2(r,v,xj,mm,nsurf,symb)
-c             print *,"aj",r,v
+c             write(6,*)"aj",r,v
           if( (edia-v)/((r-rin)*(rout-r)) .lt. 0.0d0)then
-            print*,'WARNING vwkb,  attempting ',
+            write(6,*)'WARNING vwkb,  attempting ',
      &       'to take a sqrt of a negative number ',edia-v
-            print *,'Change guess in diamin?'
+            write(6,*)'Change guess in diamin?'
             stop
           else
             term = sqrt((edia-v)/((r-rin)*(rout-r)))
@@ -49,7 +81,7 @@ c             print *,"aj",r,v
    10   continue
       rmass = mm(1)*mm(2)/(mm(1)+mm(2))
       xv = sqrt(2.d0*rmass)*rdif**2*summ/pi-0.5d0
-c      print *,xv
+c      write(6,*)xv
       endif
 
       return

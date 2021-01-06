@@ -1,3 +1,35 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
+
       subroutine getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symb)
 
 c     This subroutine handles all potential calls.
@@ -287,14 +319,14 @@ c     phase convention (this part depends on how DLAEV2 works)
         cc22(2,2) = cs1
       endif
 
-c      print *,"a",cc(1,1),cc(1,2),cc(2,1),cc(2,2)
+c      write(6,*)"a",cc(1,1),cc(1,2),cc(2,1),cc(2,2)
       rad = dsqrt(0.25d0*(u11-u22)**2+u12**2)
       v1 = 0.5d0*(u11+u22)-rad
       v2 = 0.5d0*(u11+u22)+rad
 
-c      print *,"u",u11*autoev,u22*autoev
-c      print *,"v",v1*autoev,v2*autoev
-c      print *,"v",pema(1)*autoev,pema(2)*autoev
+c      write(6,*)"u",u11*autoev,u22*autoev
+c      write(6,*)"v",v1*autoev,v2*autoev
+c      write(6,*)"v",pema(1)*autoev,pema(2)*autoev
       v1 = 0.d0
       v2 = 0.d0
       do i=1,nsurft
@@ -303,7 +335,7 @@ c      print *,"v",pema(1)*autoev,pema(2)*autoev
        v2 = v2 + cc(i,2)*pemd(i,j)*cc(j,2)
       enddo
       enddo
-c      print *,"vv",v1*autoev,v2*autoev
+c      write(6,*)"vv",v1*autoev,v2*autoev
 
 c     gradients of adiabatic surfaces v1 and v2
       do j1 = 1, 3
