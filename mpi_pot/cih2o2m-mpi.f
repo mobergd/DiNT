@@ -22,7 +22,7 @@ c NEW "AUTOFIT" PESs
       integer itinkxyz
       logical ltinkm
 
-      dimension tmpprint(50)
+      dimension tmpperint(50)
       common/tmp/tmpprint
 
 ccccc MPI
@@ -110,14 +110,8 @@ c     &    (symb(i).eq."H1"))  at(i)=5       ! h2o2
 
       if (natom3.ne.0.and.natom2.ne.0) 
      &  call lsfit(at,x,y,z,v,dvdx,dvdy,dvdz,ii,maxatom) !  Interaction PES  ch2oo+h2o2
-!      print *,"Step 1 v = ",v,"on proc",my_id
-!      print *,"Step 1 v2 = ",v2,"on proc",my_id
-!      print *,"Step 1 v3 = ",v3,"on proc",my_id
       if (natom3.ne.0.and.natom2.ne.0.and.natom4.ne.0) 
      &  call rgexp(at,x,y,z,v3,dvdx3,dvdy3,dvdz3,natom,maxatom) !  Interaction PES  ch2oo+h2o2 + m
-!      print *,"Step 2 v = ",v,"on proc",my_id
-!      print *,"Step 2 v2 = ",v2,"on proc",my_id
-!      print *,"Step 2 v3 = ",v3,"on proc",my_id
 
       itinkxyz=0
       if (natom3.eq.0) itinkxyz=1   ! only targets
@@ -127,10 +121,6 @@ c     &    (symb(i).eq."H1"))  at(i)=5       ! h2o2
      &          ii,maxatom,itinkxyz)
 c      if (.not.ltinkm.and.natom3.ne.0)
 c     &   call bath(at3,x3,y3,z3,v3,dvdx3,dvdy3,dvdz3,natom3,maxatom) !  1D diatomic baths
-
-!      print *,"Step 3 v = ",v,"on proc",my_id
-!      print *,"Step 3 v2 = ",v2,"on proc",my_id
-!      print *,"Step 3 v3 = ",v3,"on proc",my_id
 
       tmpprint(1)=v3   ! interaction
       tmpprint(3)=v2   ! target internal
@@ -343,29 +333,16 @@ c **********************************************************************
       call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
       call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
 
-!      print *,"Got to prepot on proc ",my_id
-
       if (iprepot.eq.0) then
         call prepot2
         call prepot3
-c     set up the structure and mechanics calculation
-!        IF (my_id.eq.0) THEN
         call initial
         call getxyz
         call getkey
         call mechanic
-!        ENDIF
         iprepot=1
         itinkxyz=0
         itinkxyzlast=0
-!        call MPI_BCAST(nat, 1, MPI_INTEGER,
-!     &               0, MPI_COMM_WORLD, ierr)
-!        call MPI_BCAST(xx, n, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
-!        call MPI_BCAST(yy, n, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
-!        call MPI_BCAST(zz, n, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
         return
       endif
 
@@ -383,18 +360,6 @@ c     set up the structure and mechanics calculation
         z(i)=zz(i)*autoang
       enddo
 
-!      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-
-!      call MPI_BCAST(n, 1, MPI_INTEGER,
-!     &               0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(x, n, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(y, n, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(z, n, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
-
-!      IF (my_id.eq.0) THEN
       call gradient (energy,derivs)
       pema=energy/autokcal
 
@@ -403,18 +368,6 @@ c     set up the structure and mechanics calculation
         dyy(i)=derivs(2,i)/autokcal*autoang
         dzz(i)=derivs(3,i)/autokcal*autoang
       enddo
-!      ENDIF
-
-!      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-
-!      call MPI_BCAST(nat, 1, MPI_INTEGER,
-!     &               0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(dxx, nat, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(dyy, nat, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
-!      call MPI_BCAST(dzz, nat, MPI_DOUBLE_PRECISION,
-!     &               0, MPI_COMM_WORLD, ierr)
 
       itinkxyzlast=itinkxyz
 
@@ -439,7 +392,6 @@ c **********************************************************************
 
       include 'paramls.inc'
       dimension iagroup(maxatom),
-!     &  ind(maxterm,maxpair),
      &  nfound(maxatom),iatom(maxperm,maxatom),
      &  idum(maxatom),nngroup(maxatom),idum2(maxperm,maxatom),
      &  idum3(maxperm,maxatom),nperm0(maxperm),nperm1(maxperm),
@@ -447,7 +399,6 @@ c **********************************************************************
      &  basis(maxterm),dbasisdr(maxterm,maxpair),
      &  rrr(maxdata,maxpair),index(maxatom,maxatom),ix(maxperm,maxpair)
       double precision, allocatable :: basismpi(:), dbasisdrmpi(:,:)
-!      double precision, allocatable :: basis(:),dbasisdr(:,:)
       integer, allocatable :: ind(:,:)
       character*2 symb(maxatom),dum
       logical lreadbasis
@@ -503,12 +454,11 @@ c     generate atom permutation lists
       ntmp=1
       do i=1,ngroup
         idum(i)=nperm0(i)
-        IF (my_id.eq.0)
-     &    print *,
+        IF (my_id.eq.0) write(6,*)
      &   "Group ",i," has ",(nperm1(i)-nperm0(i)+1)," permutations"
         ntmp=ntmp*(nperm1(i)-nperm0(i)+1)
       enddo
-      IF (my_id.eq.0) print *,"For a total of ",ntmp," permutations"
+      IF (my_id.eq.0) write(6,*)"For a total of ",ntmp," permutations"
 
       npermute=0
       do while (.true.)
@@ -696,11 +646,6 @@ ccc READ BASIS ccc
         call MPI_BCAST(ind, npairs*nterms, MPI_INTEGER,
      &                 0, MPI_COMM_WORLD, ierr)
 
-!        print *,"npairs = ",npairs,"on proc",my_id
-!        print *,"nterms = ",nterms,"on proc",my_id
-!        print *,"ibasis(5) = ",ibasis(5),"on proc",my_id
-!        print *,"ind(3,36) = ",ind(3,36),"on proc",my_id
-
       endif
 
       return
@@ -712,7 +657,6 @@ ccc READ BASIS ccc
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call MPI_BCAST(ncoef, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-!      print *,"ncoef = ",ncoef,"in funcs1 on proc",my_id
 
       do i=1,ncoef
         basis(i)=0.d0
@@ -721,15 +665,11 @@ ccc READ BASIS ccc
         enddo
       enddo
 
-!      print *,"initialized basis and dbasisdr on proc",my_id
-
       do j=1,npairs
         r(j)=dexp(-rrr(iii,j)*autoang)
       enddo
 
       ndata=nterms/nproc+1*min(mod(nterms,nproc),1)
-
-!      print *,"ndata = ",ndata,"on proc",my_id
 
       allocate(basismpi(nterms))
       allocate(dbasisdrmpi(nterms,npairs))
@@ -740,7 +680,6 @@ ccc READ BASIS ccc
           dbasisdrmpi(i,j)=0.d0
         enddo
       enddo
-!      print *,"ind(1,j) =",(ind(1,j),j=1,npairs),"in funcs1"
 
 ccccc MPI DO
       do i=my_id+1,nterms,nproc
@@ -755,8 +694,6 @@ ccccc MPI DO
         enddo
       enddo
 ccccc MPI DO
-
-      print *,"basis(1) =",basismpi(1),"in funcs1 on proc",my_id
 
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
@@ -842,7 +779,6 @@ ccccc MPI
       call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
 
       call MPI_BCAST(iprepot3, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-!      print *,"iprepot3 = ",iprepot3,"on proc",my_id
 
       if (iprepot3.eq.0) then
         IF (my_id.eq.0) THEN
@@ -874,26 +810,19 @@ c      enddo
       ncoef=nncoef
       npairs=natom*(natom-1)/2
 
-!      print *,"ncoef =",ncoef,"in prepot3 on proc",my_id
-!      print *,"npairs =",npairs,"in prepot3 on proc",my_id
-      
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call funcs1(1,basis,ncoef,dbasisdr) 
-!      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
-!      print *,"Got to 877 in prepot3 on proc",my_id
-!      print *,"basis(1) =",basis(1),"in lsfit on proc",my_id
-
-      IF (my_id.eq.0) THEN
+!      IF (my_id.eq.0) THEN
       v=0.d0
       do j=1,ncoef
         v=v+coef(j)*basis(j)
       enddo
       v=v/autocmi
-      ENDIF
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-      call MPI_BCAST(v, 1, MPI_DOUBLE_PRECISION,
-     &               0, MPI_COMM_WORLD, ierr)
+!      ENDIF
+!      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+!      call MPI_BCAST(v, 1, MPI_DOUBLE_PRECISION,
+!     &               0, MPI_COMM_WORLD, ierr)
 
       do k=1,ii
         dvdr(k)=0.d0
