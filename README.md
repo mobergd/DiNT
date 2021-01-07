@@ -26,5 +26,3 @@ DiNT - version 2.0 can be run at fixed energy or for thermal ensembles.
   user@login:$ cd src/
   user@login:$ make
   ```
-
-(Note: cmake option currently not supported for v2.0, not guaranteed to work)
