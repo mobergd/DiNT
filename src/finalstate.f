@@ -1,3 +1,35 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
+      
       subroutine finalstate
 
 c Computes some quantities after each trajectory finishes.
@@ -13,7 +45,7 @@ c Writes some output files.
       integer i,j,k,arr,index,nprod,ioutatom
       double precision rhor(mnsurf,mnsurf),rhoi(mnsurf,mnsurf),tmp,tmpi,
      & rr(3),jp(9),jq(9),jm(9),xv,xj,rin,rout,evib,erotx,theta,
-     & ediatot,kerel,kedia,xjx,xjy,xjz,eint,mmtot
+     & ediatot,kerel,kedia,xjx,xjy,xjz,eint,mmtot,rinner
 
 c     temp
       integer wellindex1,wellindex2
@@ -107,8 +139,8 @@ c ATOM-DIATOM INITIAL CONDITIONS, PERFORM THE FOLLOWING ANALYSES, WHICH FOLLOW N
        enddo
        erottot = te - kedia - kerel - pe ! should be near zero for total angular momentum zero
        ediatot = pe + kedia ! total diatomic energy
-c       print *,erottot*autoev,ediatot*autoev,"hi"
-c       print *,'kerel=',kerel*autoev
+c       write(6,*)erottot*autoev,ediatot*autoev,"hi"
+c       write(6,*)'kerel=',kerel*autoev
 !       do i=1,3
 !       easym(1,i)=1.92539/autoev   ! IMLS CO2
 !       easym(2,i)=-0.01126/autoev
@@ -126,7 +158,7 @@ c       print *,'kerel=',kerel*autoev
 !       erotx = (xj+0.5d0)**2/(2.d0*rtmp**2*jm(1)) ! assume separability
        evib = eint - erotx
        call vwkb(arr,mm,ediatot,xj,xv,rin,rout,nsurf) ! compute vibrational action using WKB
-c       print *,rin*autoang,rout*autoang
+c       write(6,*)rin*autoang,rout*autoang
        eint = eint*autoev
        kerel = kerel*autoev
        erotx = erotx*autoev
@@ -268,7 +300,7 @@ c H2O+2AR HACK TEMP AJ
       do j=1,nprod
       write(6,*)"Product group ",j," has ",nfrag(j),
      &          " atoms with a mass ",mmfragtot(j)/amutoau," amu"
-      if (nfrag(j).eq.1.and.mmfragtot(j).eq.15.9949d0) print *,"REACT"
+c      if (nfrag(j).eq.1.and.mmfragtot(j).eq.15.9949d0) write(6,*)"REACT"
       enddo
       write(6,*)
 
@@ -290,7 +322,11 @@ c     relative reduced mass
       eorb = lorbtot**2/(2*relmu*rf**2)
       eint = (compag(1,1)**2+compag(2,1)**2+compag(3,1)**2)/(2.d0*relmu)
       erel = eint - eorb
-      tdelay = time - rf/dsqrt(erel*2.d0/relmu) 
+c      write(6,*)"distances ",rf*autoang,t_r(1)*autoang
+c      write(6,*)"energy    ",erel*autoev,erelqci*autoev
+      rinner=0./autoang
+      tdelay = time - (rf-rinner)/dsqrt(erel*2.d0/relmu)
+     &              - (t_r(1)-rinner)/dsqrt(erelqci*2.d0/relmu)
       ioutatom=2
 c      ioutatom=2  ! hack for CO2
 c      if(outcome.eq.2) ioutatom=1  ! hack for CO2
@@ -303,7 +339,7 @@ c      if(outcome.eq.2) ioutatom=1  ! hack for CO2
       write(6,*)"Final relative orbital energy  = ",eorb*autoev," eV"
       write(6,*)"Final relative trans energy    = ",erel*autoev," eV"
       write(6,*)"Delay time                     = ",tdelay*autofs," fs"
-      write(6,*)"Scattering angle               = ",theta
+c      write(6,*)"Scattering angle               = ",theta
       write(6,*)
 c uncomment for CO2
 c       if (lwrite(30)) write(30,115)index,nsurf,arr,time*autofs,istep,
@@ -402,9 +438,8 @@ c          if (.false.) then
  88   continue
 
 c hack delay time
-      if (lwrite(32)) write(32,1032)index,nsurf,outcome,
-     &   rhor(1,1),rhor(2,2),tdelay*autofs
- 1032 format(3i5,3f15.5)
+      if (lwrite(32)) write(32,1032)tdelay*autofs
+ 1032 format(3f15.5)
 
 
       if (lwrite(31)) then

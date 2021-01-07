@@ -36,12 +36,12 @@ c SET THESE
 c     NC = number of separate QC calls per geom
 c     NS(i) = number of states for call #i
 c     NP(i) = QC package to be used for call #i
-c           = 1 for G03
+c           = 1 for G03/09/16
 c           = 2 for Molpro 2006
       nc    = 1
       ns(1) = 1
       np(1) = 1
-      tname(1) = "qc.g09"
+      tname(1) = "qc.gaussian"
 c -------------------
 
       if (nc.gt.mnc) then

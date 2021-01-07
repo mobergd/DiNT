@@ -1,3 +1,34 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
       subroutine readin
 
 c This subroutine reads from the standard input.  This is the only 
@@ -42,11 +73,9 @@ c      write(6,*)"Using a user-designed interface"
       endif
       write(6,*)
 
-      call prepot
-
 c LDOFRAG
-      ldofrag = .false.
       ldofrag = .true.
+      ldofrag = .false.
 
 c initial surface, number of coupled surfaces, and electronic representation flag
       read(5,*)nsurf0,nsurft,methflag,repflag
@@ -90,8 +119,6 @@ c initial surface, number of coupled surfaces, and electronic representation fla
         write(6,*)"METHFLAG = 5:  Electronically nonadiabatic",
      &  " calculation"
         write(6,*)"Fewest switches with time uncertainty method"
-      elseif (methflag.eq.10) then
-        write(6,*)"METHFLAG = 10: Monte Carlo sampling of W(E)"
       else
         write(6,*)"METHFLAG = ",methflag," is not allowed"
       stop
@@ -104,23 +131,6 @@ c initial surface, number of coupled surfaces, and electronic representation fla
       write(6,*)"Number of surfaces > MNSURF in PARAMS"
       stop
       endif
-
-      if (methflag.eq.10) then
-      read (5,*)mccurv
-      if (mccurv.gt.0) then
-        do i=1,mccurv
-        read(5,*)mcmode(i),mctype(i),mcpar(1,mcmode(i)),
-     &              mcpar(2,mcmode(i))
-        if (mctype(i).eq.1) then
-          write(6,*)"Treating mode ",mcmode(i)," as a torsion about",
-     & " atoms",mcpar(1,mcmode(i))," and ",mcpar(2,mcmode(i))
-        elseif (mctype(i).eq.-1) then
-          write(6,*)"Skipping mode ",mcmode(i),"."
-        endif
-        enddo
-      endif
-      endif
-      write(6,*)
 
       do i=1,nsurft*2  ! why is this here? This should be in INITMOL
       cre(i) = 0.d0
@@ -179,8 +189,6 @@ c read trajectory conrol flag
         write(6,*)"TFLAG(1) = 2:  Temperature ramping"
       elseif (tflag(1).eq.3) then
         write(6,*)"TFLAG(1) = 3:  Andersen thermostat"
-c      elseif (tflag(1).eq.4) then
-c        write(6,*)"TFLAG(1) = 4:  MSX finder"   ! Doesn't currently work
       else
         write(6,*)"TFLAG(1) != 0-3 is not supported"
         stop
@@ -368,15 +376,7 @@ c       normal modes
         write(6,*)"INITx = 2: State selected initial conditions"
         ntmp = 3*natom(im)-6
         if (natom(im).eq.2) ntmp = 1
-c        read(5,*)lreadhess,nmtype(im),(nmqn(k,im),k=1,ntmp),scale0im(im)
         read(5,*)lreadhess,nmtype(im),(nmqn(k,im),k=1,ntmp)
-c        if (scale0im(im).gt.0.d0) then
-c          write(6,101)"Resulting momenta scaled such that the total",
-c     &     " energy = ",scale0im(im)," eV"
-c          scale0im(im)=scale0im(im)/autoev
-c        else
-c          write(6,*)"Resulting momenta are not scaled"
-c        endif
         if (nmtype(im).eq.1) then
         write(6,*)"Initial geometry is a saddle point"
         write(6,*)"Unbound mode will be assigned an energy of ",
@@ -488,8 +488,6 @@ c       normal modes
         do k=1,ntmp
           nmqn(k,im)=0.d0
         enddo
-c        read(5,*)lreadhess,temp0im(im),scale0im(im),sampwell(im),
-        sampwell(im)=1
         read(5,*)lreadhess,nmtype(im),temp0im(im),scale0im(im),lems(im)
         if (temp0im(im).lt.0.d0) then
           write(6,101)"Resulting momenta scaled such that the ",
@@ -528,20 +526,6 @@ c          convert from A to bohr
            enddo
 c           write(6,*)
         enddo
-        if (sampwell(im).eq.2) then
-          read(5,*)relwell2(im),emin2(im)
-          emin2(im)=emin2(im)/autoev
-          relwell1(im)=1.d0-relwell2(im)
-          write(6,*)"Second well"
-          do i=1,natom(im)
-             ii=iatom(im)+i
-             read(5,*)(xx02(k,ii),k=1,3)
-             write(6,113)ii,symbol(ii),mm(ii)/amutoau,(xx02(k,ii),k=1,3)
-             do k=1,3
-              xx02(k,ii)=xx02(k,ii)/autoang
-             enddo
-          enddo
-        endif
         write(6,*)
         write(6,*)"For INITx = 5, INITp is not used and is set to -1"
         write(6,*)
@@ -551,18 +535,11 @@ c           write(6,*)
      &   "from a separate files"
         read(5,*)samptot(im),lbinsamp(im),sampfilexx(im),sampfilepp(im),
      &   lems(im)
-c     &   sampwell(im),lems(im)
-          sampwell(im)=1
         write(6,*)"Sampling from ",samptot(im)," data contained in ",
      &    "the XYZ file ",sampfilexx(im)," and the PxPyPz file ",
      &    sampfilepp(im)
-        if (sampwell(im).eq.2) then 
-          read(5,*)samptot2(im),lbinsamp2(im),sampfilexx2(im),
-     &     sampfilepp2(im),relwell2(im)
-          relwell1(im)=1.d0-relwell2(im)
-        endif
         if (lems(im)) then
-          read(5,*)emicr(im),ninc(im),nbrea(im),nemstot(im)
+          read(5,*)emicr(im),ninc(im),nbrea(im),nemstot(im), lnorot(im)
           write(6,*)"Efficient Microcanonical Sampling (EMS) ",
      &     "will be used to refine the resulting coordinates ",
      &     "and momenta to generate a microcanonical ensemble ",
@@ -695,7 +672,7 @@ c AG orientational information
       write(6,*)"AG orientational prescription"
       write(6,*)"-----------------------------"
       if (nmol.eq.1) then
-c        ldofrag=.true.
+        ldofrag=.true.
         write(6,*)"Single AG calculation, no orientational",
      &                   " info required"
         do k=1,3
@@ -770,8 +747,6 @@ c read termination condition
       write(6,*)"Termination condition"
       write(6,*)"---------------------"
       read(5,*)termflag,t_nstep
-c      read(5,*)termflag,t_nstep,lwell
-      lwell=0
       if (termflag.eq.0) then
 c       fixed number of steps per trajectory
         write(6,*)"TERMFLAG = 0:  Fixed number of steps per trajectory"
@@ -794,7 +769,7 @@ c       dissociation
         write(6,*)"TERMFLAG = 3:  Association/dissociation",
      &   " termination conditions"
         write(6,*)"Outcome label      Bond        Distance (A)"
-        read(5,*)t_noutcome
+        read(5,*)t_noutcome, lchkdis
         do i=1,t_noutcome
           read(5,*)t_symb(i,1),t_symb(i,2),t_r(i)
           if (t_r(i).ge.0.d0) then
@@ -822,8 +797,6 @@ c     monitor dmag
       endif
       write(6,*)
 
-      if (lwell.gt.0) write(6,*)"Selecting geoms in PE well ",lwell
-
 c output flags
       write(6,*)"Output options"
       write(6,*)"--------------"
@@ -847,6 +820,22 @@ c output flags
       write(6,*)
 
 c print headers
+      if (lwrite(10)) then
+        write(10,*)"INITIAL CONDITION"
+        write(10,*)"GEOMETRIES IN ANGSTROM"
+      endif
+      if (lwrite(11)) then
+        write(11,*)"INITIAL CONDITION"
+        write(11,*)"MOMENTA IN AU"
+      endif
+      if (lwrite(20)) then
+        write(20,*)"FINAL STATE"
+        write(20,*)"GEOMETRIES IN ANGSTROM"
+      endif
+      if (lwrite(21)) then
+        write(21,*)"FINAL STATE"
+        write(21,*)"MOMENTA IN AU "
+      endif
       if (lwrite(80)) then
         write(80,*)"[Molden Format]"
         write(80,*)"[GEOMETRIES] XYZ"
@@ -862,12 +851,8 @@ c print headers
      &   status='unknown',access='direct',RECL=nrecl)
       
       do im=1,nmol
-      if (lems(im).or.lwell.gt.0) then
-        if (lwell.gt.0) then
-          nrecl=(3+5*nat)*10
-        else
+      if (lems(im)) then
           nrecl=(3+5*natom(im))*10
-        endif
         if (lwrite(86)) then
           write(86,*)"[Molden Format]"
           write(86,*)"[GEOMETRIES] XYZ"

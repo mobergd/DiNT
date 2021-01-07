@@ -47,9 +47,9 @@
        xxx=-ex*(be**(2.d0/3.d0))
        call AIRYA(xxx,a1,a2,a3,a4)
        pairy=pi**2*be**(4.d0/3.d0)*a1**2
-c       print *,elz*627.509,e0,be,ex,xxx,a1,pairy,tmpf,gtmp1,gtmp2,gtmp
-!      print *,elz*autoev,gtmp,plz,pairy
-!       print *,gtmp,gtmp1,gtmp2
+c       write(6,*)elz*627.509,e0,be,ex,xxx,a1,pairy,tmpf,gtmp1,gtmp2,gtmp
+!       write(6,*)elz*autoev,gtmp,plz,pairy
+!       write(6,*)gtmp,gtmp1,gtmp2
 
 !      stop
 

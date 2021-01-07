@@ -1,3 +1,34 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
       subroutine getgrad(xx,pp,nsurf,v,cre,cim,gv,gcre,gcim,nclu,
      &  phop,dmag,dvec,pem,gpem,phase)
 
@@ -43,7 +74,7 @@ c msx search variables
        double precision x1mag,x1(3,mnat),gupp(3,mnat),
      &   dot1,egap,gf(3,mnat),gg(3,mnat),msx_grad(3,mnat)
 
-c      print *,((xx(i,j),i=1,3),j=1,3),((pp(i,j),i=1,3),j=1,3)
+c      write(6,*)((xx(i,j),i=1,3),j=1,3),((pp(i,j),i=1,3),j=1,3)
 c ZERO
       do i=1,nsurft
         phop(i) = 0.d0
@@ -584,53 +615,6 @@ c save PEM as the diagonal elements of whichever represenation we are using
         enddo
         endif
       enddo
-
-c overwrite gradients if we are doing a MSX search
-      if (tflag(1).eq.4) then
-
-c     get upper state index
-      nupper=2
-      if (pem(1).gt.pem(2)) nupper=1
-      egap=pem(1)-pem(2)
-
-c     get x1 and gupper
-
-      x1mag = 0.d0
-      do i=1,nclu
-      do j=1,3
-      x1(j,i)   = gpem(j,i,1)-gpem(j,i,2)    ! grad(E1-E2)
-      x1mag     = x1mag+x1(j,i)**2
-      gupp(j,i) = gpem(j,i,nupper)           ! grad of upper surface
-      enddo
-      enddo
-      x1mag = dsqrt(x1mag)                   ! magnitude of grad(E1-E2)
-
-c     for zero nonadiabatic coupling...
-c     compute dot prod
-      dot1=0.d0
-      do i=1,nclu
-      do j=1,3
-        dot1=dot1+x1(j,i)*gupp(j,i)/x1mag    ! grad upper . x1/x1mag
-      enddo
-      enddo
-
-c     project out componenets in the direction of x1
-      do i=1,nclu
-      do j=1,3
-      gf(j,i) = 2.d0*egap*x1(j,i)/x1mag      ! f = 2*(E1-E2)*x1/x1mag
-      gg(j,i) = gupp(j,i)-dot1*x1(j,i)/x1mag ! g = grad upper projected onto plane perp to f
-      msx_grad(j,i) = gg(j,i)+gf(j,i)            ! total gradient
-      enddo
-      enddo
-
-c     replace gradient with msx_grad
-      do i=1,nclu
-      do j=1,3
-        gv(j,i)=msx_grad(j,i)
-      enddo
-      enddo
-
-      endif
 
       return
       end

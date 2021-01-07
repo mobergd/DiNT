@@ -1,0 +1,16 @@
+
+#PBS -l nodes=node16:ppn=1+node15:ppn=1+node14:ppn=1
+#PBS -j oe
+#PBS -q normal1
+
+cd $PBS_O_WORKDIR
+
+module load intel/paralle_studio_xe_2017.0.035
+
+export DINT_TMP_DIR=/tmp/reeming/
+
+export DINT_DELETE_TMP=yes
+
+export PATH=$PATH:/home/reeming/work/dint2/exe
+
+mpirun -np 3 dint-tbplusexp6-2.x.opt

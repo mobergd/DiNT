@@ -1,3 +1,34 @@
+c
+c   Dint – version 2.0  is licensed under the Apache License, Version 2.0 (the "License");
+c   you may not use Dint – version 2.0 except in compliance with the License.
+c   You may obtain a copy of the License at
+c       http://www.apache.org/licenses/LICENSE-2.0
+c   The license is also given in the LICENSE file.
+c   Unless required by applicable law or agreed to in writing, software
+c   distributed under the License is distributed on an "AS IS" BASIS,
+c   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+c   See the License for the specific language governing permissions and limitations under the License.
+c
+c -------------------------------------------------------------------------------------------
+c  Dint : Direct Nonadiabatic Trajectories A code for non-Born–Oppenheimer molecular dynamics 
+c  
+c  version 2.0                                    
+c
+c  A. W. Jasper                  
+c  Argonne National Laboratories     
+c
+c  Rui Ming Zhang                 
+c  Tsinghua University
+c               
+c  and                  
+c    
+c  D. G. Truhlar                 
+c  University of Minnesota
+c
+c  copyright  2020
+c  Donald G. Truhalar and Regents of the University of Minnesota 
+c----------------------------------------------------------------------------------------------
+
       subroutine ange(xx,pp,mm,natom,eig,bigj,bigjtot,erot,erottot)
 
 c Compute rotational energies around principal axes
@@ -37,7 +68,7 @@ c      do j=1,3
 c      rr=rr+(xx(j,1)-xx(j,2))**2
 c      enddo
 c      mom2=mm(1)*mm(2)/(mm(1)+mm(2))*rr   ! remember rr=R**2
-c      print *,"mom2=",mom2
+c      write(6,*)"mom2=",mom2
 c      return
 c      endif
 
@@ -61,13 +92,13 @@ c compute moment of intertia matrix mom
       mom(3,1)=mom(1,3)
       mom(3,2)=mom(2,3)
 
-c      print *,"mom"
-c      print *,(mom(1,j),j=1,3)
-c      print *,(mom(2,j),j=1,3)
-c      print *,(mom(3,j),j=1,3)
+c      write(6,*)"mom"
+c      write(6,*)(mom(1,j),j=1,3)
+c      write(6,*)(mom(2,j),j=1,3)
+c      write(6,*)(mom(3,j),j=1,3)
 
 c      call angmom(xx,pp,mm,natom,bigj,bigjtot)
-c      print *,"j",bigj,bigjtot
+c      write(6,*)"j",bigj,bigjtot
 
 c     diagonalize the mom matrix
       do i=1,3
@@ -77,12 +108,12 @@ c     diagonalize the mom matrix
       enddo
       call dspev( 'v','u',3,ap,eig,rot,3,work,info )
 
-c      print *,"rot"
-c      print *,(rot(1,j),j=1,3)
-c      print *,(rot(2,j),j=1,3)
-c      print *,(rot(3,j),j=1,3)
-c      print *,"eig"
-c      print *,(eig(j),j=1,3)
+c      write(6,*)"rot"
+c      write(6,*)(rot(1,j),j=1,3)
+c      write(6,*)(rot(2,j),j=1,3)
+c      write(6,*)(rot(3,j),j=1,3)
+c      write(6,*)"eig"
+c      write(6,*)(eig(j),j=1,3)
 
 c rotate to diagonalize mom
       do i=1,natom
@@ -125,10 +156,10 @@ c      write(6,*)"Ji = ",(bigj(j),j=1,3)
         stop
       endif
 
-c      print *,"ange"
-c      print *,bigj(1),erot(1)*autoev,eig(1)
-c      print *,bigj(2),erot(2)*autoev,eig(2)
-c      print *,bigj(3),erot(3)*autoev,eig(3)
+c      write(6,*)"ange"
+c      write(6,*)bigj(1),erot(1)*autoev,eig(1)
+c      write(6,*)bigj(2),erot(2)*autoev,eig(2)
+c      write(6,*)bigj(3),erot(3)*autoev,eig(3)
 
       return
  
