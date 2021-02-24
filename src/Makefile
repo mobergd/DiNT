@@ -1,30 +1,54 @@
 #Makefile for dint
 
 #set POT here or use 'gmake POT=potname'
-
-POT=dd
+#POT=dd
 #POT=h2oM
 #POT=ch4hALL
 #POT=ch4ohALL
 #POT=ethylene
 
+#TINKER PES
+# atom types: ~/tinker/tinker/params/mm3.prm 
+# # NOTE: obj_tinker contains a link to the mm3 PES
+# # NOTE: obj_tinker2 contains a link to the amoeba09 PES
+# # NOTE: obj_tinker3 contains a link to the oplsaa PES
+TINKER=1
+#POT=rohMP
+#POT=roohT
+#POT=alkT
+MPION=yes
+POT=cih2o2m-mpi
+#TINKER PES
+
 EXEDIR = ../exe
-TARG = $(EXEDIR)/dint2-$(POT).x$(EXESUFFIX)
+TARG = $(EXEDIR)/dint2-$(POT)_mpi.x$(EXESUFFIX)
 OBJDIR = obj
 OBJDIR_OPT = obj_opt
 
-FC = mpiifort
-LD = mpiifort
+#FC = mpiifort
+#LD = mpiifort
+#COMPLIB = -mkl
+FC = mpif77
+LD = mpif77
+COMPLIB = -llapack -lblas
 OPT_FFLAGS = -O3
 FTPPFLAGS = -I../../sprng/SRC -I.. -c
-FFLAGS = -c
-COMPLIB = -mkl
+ifeq ($(TINKER),0)
+ FFLAGS = -c
+else
+ TINKLIB = /home/jasper/KTP/dint/tinker/tinker/source
+ FFLAGS = -c -I$(TINKLIB)
+endif
 RNGLIB = -lmlfg
 LIBS = $(COMPLIB) $(RNGLIB)
 # LDFLAGS = -O3 -g -L../../sprng/lib -L/soft/apps/packages/lapack-3.0/lib
 LDFLAGS = -O3 -g -L../../sprng/lib -L/usr/lib64 
 
-VPATH = ..:../../pot:../../dd_pot:../../autopot
+CPP = cpp -P -traditional
+CPPFLAGS += -DMPITRAJS		# MPI for trajectories
+CPPFLAGS += -DMPIFORCES		# MPI for force evaluations
+
+VPATH = ..:../../pot:../../dd_pot:../../autopot:../../mpi_pot
 
 SRC = $(POT) \
 	addrot.F \
@@ -202,7 +226,11 @@ xptoy.o:      param.f
 COMPILE = $(FC) $(FFLAGS) $(OPT)
 
 $(TARG): $(OBJ)
+ifeq ($(TINKER),0)
 	$(LD) $(LDFLAGS) $(OBJ) $(LIBS) -o $(TARG)
+else
+	$(LD) $(LDFLAGS) -ffast-math -fopenmp -static-libgcc $(OBJ) $(LIBS) -o $(TARG) $(TINKLIB)/libtinker.a $(TINKLIB)/libfftw3_threads.a $(TINKLIB)/libfftw3.a
+endif
 
 %.o : %.f
 	$(COMPILE) $< -o $@

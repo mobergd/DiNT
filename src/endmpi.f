@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratories     
+c  Argonne National Laboratory     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -30,31 +30,35 @@ c  Donald G. Truhalar and Regents of the University of Minnesota
 c----------------------------------------------------------------------------------------------
 
       subroutine endmpi
-        implicit none
-        include 'param.f'
-        include 'c_sys.f'
-        include 'mpif.h'
 
-        integer err_code
+      implicit none
+      include 'param.f'
+      include 'c_sys.f'
+      include 'mpif.h'
 
-        if (ltmpdir) then
+      integer ierr
+
+#ifdef MPITRAJS
+      if (ltmpdir) then
 c     copy folder work_path back to job_path
-          call system( "cp -R "//trim(work_path)//"  "//trim(job_path) )
+        call system( "cp -R "//trim(work_path)//"  "//trim(job_path) )
 c     clear the tmp_path
-          if (ldeltmp) then
-            call system( "rm -rf "//trim(work_path) )
-          endif
+        if (ldeltmp) then
+          call system( "rm -rf "//trim(work_path) )
         endif
+      endif
 
 c     barrier
-        call MPI_Barrier(MPI_COMM_WORLD, err_code)
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
 c     joint output
-        if (my_rank.eq.0) then
+      if (my_rank.eq.0) then
 c     change direction to job folder
-          call chdir(job_path)
-          call jointprint
-        endif
+        call chdir(job_path)
+        call jointprint
+      endif
+#endif
 
-        call MPI_Finalize( err_code )
+      call MPI_FINALZIE(ierr)
+
       end

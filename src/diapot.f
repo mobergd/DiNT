@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratories     
+c  Argonne National Laboratory     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -38,6 +38,10 @@ c number IM. Specialized for atom-diatom initial conditions.
       implicit none
       include 'param.f'
       include 'c_sys.f'
+#ifdef MPIFORCES
+      include 'mpif.h'
+#endif
+
       integer im,j,nsurf,i
       double precision v,xx(3,mnat),r(3),xj,erot,rmass,x,
      &  mmm(mnat)

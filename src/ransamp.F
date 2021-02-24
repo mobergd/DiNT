@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratories     
+c  Argonne National Laboratory     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -36,6 +36,9 @@ c-------------------------------------------------------------------------------
       implicit none
       include 'param.f'
       include 'c_ran.f'
+#ifdef MPIFORCES
+      include 'mpif.h'
+#endif
 #include <sprng_f.h>
 
 c in/out
@@ -47,9 +50,16 @@ c in/out
       logical lbins,ifems
 
 c local
-      integer n,i,j,nrcl,itmp1,itmp2, istep
+      integer n,i,j,nrcl,itmp1,itmp2,istep
       double precision r
       character*2 ctmp(nn)
+
+c MPI
+!      integer my_rank,nproc,ierr
+!      integer status(MPI_STATUS_SIZE)
+
+!      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+!      call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
 
       r=sprng(rng_stream)
       r=r*dble(ntot)
@@ -60,24 +70,37 @@ c      filepp="../r0/" // filep2
       filexx=filex2
       filepp=filep2
 
-      write(6,*)"Reading sample ",n
+      IF (my_rank.eq.0) write(6,*)"Reading sample ",n
 
       if (lbins) then
  1080   format(a2,3f15.5)
  1081   format(i5,i7,f15.5)
         nrcl=(3+5*nn)*10
+        IF (my_rank.eq.0) THEN
         open(93,file=filexx,form='unformatted',
      &   status='unknown',access='direct',RECL=nrcl)
         read(93,REC=n)itmp1,itmp2,molpe,(ctmp(i),i=1,nn),
      &   ((xx(j,i),j=1,3),i=1,nn)
         write(6,1081)itmp1,itmp2,molpe
+        ENDIF
+#ifdef MPIFORCES
+        call MPI_BCAST(nn, 1, MPI_INTEGER,
+     &                 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(xx, 3*nn, MPI_DOUBLE_PRECISION,
+     &                 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(molpe, 1, MPI_DOUBLE_PRECISION,
+     &                 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(ctmp, nn, MPI_INTEGER,
+     &                 0, MPI_COMM_WORLD, ierr)
+#endif
         do i=1,nn
-          write(6,1080)ctmp(i),(xx(j,i),j=1,3)
+          IF (my_rank.eq.0) write(6,1080)ctmp(i),(xx(j,i),j=1,3)
           xx(1,i) = xx(1,i)/autoang
           xx(2,i) = xx(2,i)/autoang
           xx(3,i) = xx(3,i)/autoang
         enddo
       else
+        IF (my_rank.eq.0) THEN
         open(unit=93,file=filexx)
         read(93,*)
         read(93,*)
@@ -90,17 +113,23 @@ c      filepp="../r0/" // filep2
         enddo
         read(93,*)
         read(93,*)istep,molpe
+        ENDIF
         do j=1,nn
-          read(93,*)dum,xx(1,j),xx(2,j),xx(3,j)
+          IF (my_rank.eq.0) read(93,*)dum,xx(1,j),xx(2,j),xx(3,j)
           xx(1,j)=xx(1,j)/autoang
           xx(2,j)=xx(2,j)/autoang
           xx(3,j)=xx(3,j)/autoang
         enddo
+#ifdef MPIFORCES
+        call MPI_BCAST(xx, 3*nn, MPI_DOUBLE_PRECISION,
+     &                 0, MPI_COMM_WORLD, ierr)
+#endif
       endif
       close(93)
       
       if (ifems) return
       if (lbins) then
+        IF (my_rank.eq.0) THEN
         open(94,file=filepp,form='unformatted',
      &   status='unknown',access='direct',RECL=nrcl)
         read(94,REC=n)itmp1,itmp2,molpe,(ctmp(i),i=1,nn),
@@ -109,7 +138,17 @@ c      filepp="../r0/" // filep2
         do i=1,nn
           write(6,1080)ctmp(i),(pp(j,i),j=1,3)
         enddo
+        ENDIF
+#ifdef MPIFORCES
+        call MPI_BCAST(pp, 3*nn, MPI_DOUBLE_PRECISION,
+     &                 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(molpe, 1, MPI_DOUBLE_PRECISION,
+     &                 0, MPI_COMM_WORLD, ierr)
+        call MPI_BCAST(ctmp, nn, MPI_INTEGER,
+     &                 0, MPI_COMM_WORLD, ierr)
+#endif
       else
+        IF (my_rank.eq.0) THEN
         open(unit=94,file=filepp)
         read(94,*)
         read(94,*)
@@ -125,6 +164,11 @@ c      filepp="../r0/" // filep2
         do j=1,nn
           read(94,*)dum,pp(1,j),pp(2,j),pp(3,j)
         enddo
+        ENDIF
+#ifdef MPIFORCES
+        call MPI_BCAST(pp, 3*nn, MPI_DOUBLE_PRECISION,
+     &                 0, MPI_COMM_WORLD, ierr)
+#endif
       endif
       close(94)
 

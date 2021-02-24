@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratories     
+c  Argonne National Laboratory     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -31,7 +31,7 @@ c-------------------------------------------------------------------------------
 
 
       program dint
-c     Dint:  Adiabatix and Nonadiabatic Trajectories
+c     Dint:  Adiabatic and Nonadiabatic Trajectories
 c     Main program.  This routine calls HEADER and READIN once, then
 c     calls PREMOL once per AG to precalculate some constants.
 c     DRIVER is called NTRAJ times, once for each trajectory.
@@ -39,57 +39,72 @@ c     FINALSTATE is called after each trajectory to write some data.
 
 c     MPI version of Dint modified by Rui Ming Zhang
 
-
       implicit none
       include 'param.f'
       include 'c_sys.f'
       include 'c_ran.f'
       include 'c_traj.f'
-      include 'mpif.h'
 #include <sprng_f.h>
+#if defined(MPITRAJ) || defined(MPIFORCES)
+      include 'mpif.h'
+#endif
 
       integer im,initrng,minitrng,i,ia, n_tmp
       double precision t1,t2,t3,cputime,t3old,r
 
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-c     INITIALIZE DINT2.0
+c     INITIALIZE DINT 2.0
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     init MPI
       call initmpi
 
 c     print header
-      call header
+      IF (my_rank.eq.0) call header
 
-      write(6,'("...entering READIN...",/)')
+      IF (my_rank.eq.0) write(6,'("...entering READIN...",/)')
       call readin
-      write(6,'("...exiting READIN...",/)')
+      IF (my_rank.eq.0) write(6,'("...exiting READIN...",/)')
 
 c     prepare the pot.
 c     do nothing for analytical PES
 c     read qc.txt for dd
-      write(6, '("... entering PREOPT ... ",/)')
+      IF (my_rank.eq.0) write(6, '("... entering PREOPT ... ",/)')
       call prepot
-      write(6, '("... exiting PREOPT ... ",/)')
+      IF (my_rank.eq.0) write(6, '("... exiting PREOPT ... ",/)')
 
 c     prepare each molecule
 c     compute quantities that are the same for all trajectories
 c     initialize electronic coordinates
-      call timing(t1)
-      write(6,'("...entering PREMOL...",/)')
+#ifdef MPIFORCES
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
+      IF (my_rank.eq.0) THEN
+        call timing(t1)
+        write(6,'("...entering PREMOL...",/)')
+      ENDIF
       call initelec
-      do im = 1 , nmol
-      call premol(im)
+      do im = 1, nmol
+        call premol(im)
       enddo
-      write(6,'("...exiting PREMOL...",/)')
-      call timing(t2)
-      write(6,'(" CPU time in PREMOL is ",f10.5," s",/)')(t2-t1)
+#ifdef MPIFORCES
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
+      IF (my_rank.eq.0) THEN
+        write(6,'("...exiting PREMOL...",/)')
+        call timing(t2)
+        write(6,'(" CPU time in PREMOL is ",f10.5," s",/)')(t2-t1)
+      ENDIF
 
 c     assign trajectories for each processor
       if (ntraj.lt.nproc) then
-        write(*,*)" Wrong, the number of processor exceeds the 
-     &number of trajectories."
+        IF (my_rank.eq.0) write(*,*)
+     &    " Wrong, the number of processors exceeds the 
+     &    number of trajectories."
         stop
       endif
+ccccc MPI LOOP
+      ! EDIT THIS TO WORK WITH FORCE PARALLELIZATION
+      ! CAN MODIFY ALL my_rank -> my_itraj?
       n_tmp    = int( ceiling( ntraj/dble(nproc) ) )
       my_itraj = my_rank * n_tmp + 1
       my_ntraj = min( ntraj, ( my_rank + 1 ) * n_tmp )
@@ -105,12 +120,16 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       do itraj = my_itraj,my_ntraj
 
+      IF (my_rank.eq.0) THEN
       write(6,*)"***TRAJECTORY ",itraj," OUT OF ",ntraj,"***"
       write(6,*)
+      ENDIF
 
       if (tflag(2).eq.1) then
+      IF (my_rank.eq.0) THEN
       write(6,*)"Restarting trajectory #",trajlist(itraj)
       write(6,*)
+      ENDIF
       initrng = trajlist(itraj)-1
       else
       initrng = itraj-1
@@ -120,56 +139,80 @@ c     initialize this trajectory
       nsurf = nsurf0
       hstep = hstep0
 c     initialize electronic coordinates
+#ifdef MPIFORCES
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
       call initelec
 c     initialize the randum number generator
       rng_stream = init_sprng(initrng,maxtraj,ranseed,SPRNG_DEFAULT)
 
-      write(6,'("...entering INITMOL...",/)')
+      IF (my_rank.eq.0) write(6,'("...entering INITMOL...",/)')
       do im = 1 , nmol
 c     generate specific initial coordinates for each molecule
+#ifdef MPIFORCES
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
       call initmol(im)
       enddo
-      write(6,'("...exiting INITMOL...",/)')
+      IF (my_rank.eq.0) write(6,'("...exiting INITMOL...",/)')
 
-      write(6,'("...entering ORIENT...",/)')
+      IF (my_rank.eq.0) write(6,'("...entering ORIENT...",/)')
       do im = 1 , nmol
 c     orient AGs with respect to each other
+#ifdef MPIFORCES
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
       call orient(im)
       enddo
-      write(6,'("...exiting ORIENT...",/)')
+      IF (my_rank.eq.0) write(6,'("...exiting ORIENT...",/)')
 
-      write(6,'("...entering PREPTRAJ...",/)')
+      IF (my_rank.eq.0) write(6,'("...entering PREPTRAJ...",/)')
+#ifdef MPIFORCES
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
       call preptraj
-      write(6,'("...exiting PREPTRAJ...",/)')
+      IF (my_rank.eq.0) write(6,'("...exiting PREPTRAJ...",/)')
 
 c     propagate this trajectory
-      write(6,'("...entering DRIVER...",/)')
+      IF (my_rank.eq.0) write(6,'("...entering DRIVER...",/)')
+#ifdef MPIFORCES
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
       call driver
-      write(6,'("...exiting DRIVER...",/)')
-      t3old = t3
-      call timing(t3)
-      cputime = cputime + (t3-t3old)
-      write(6,'(" CPU time for this trajectory is ",f10.5," s",/)')
-     & (t3-t3old)
+      IF (my_rank.eq.0) THEN
+        write(6,'("...exiting DRIVER...",/)')
+        t3old = t3
+        call timing(t3)
+        cputime = cputime + (t3-t3old)
+        write(6,'(" CPU time for this trajectory is ",f10.5," s",/)')
+     &   (t3-t3old)
+      ENDIF
 
 c     analyze trajectory
-      write(6,'("...entering FINALSTATE...",/)')
+      IF (my_rank.eq.0) write(6,'("...entering FINALSTATE...",/)')
+#ifdef MPIFORCES
+      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+#endif
       call finalstate
-      write(6,'("...exiting FINALSTATE...",/)')
+      IF (my_rank.eq.0) write(6,'("...exiting FINALSTATE...",/)')
 
 c     end loop over trajectories
       enddo
 
-      write(6,'(" CPU time for all trajectories is ",f10.5," s or ",
+      IF (my_rank.eq.0) 
+     & write(6,'(" CPU time for all trajectories is ",f10.5," s or ",
      & f10.5," s per trajectory.",/)')
      & cputime,cputime/dble(ntraj)
 
- 999  write(6,'("Well done!")')
+ 999  continue
+      IF (my_rank.eq.0) write(6,'("Well done!")')
 
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     END 
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+#if defined(MPITRAJS) || defined(MPIFORCES)
       call endmpi
+#endif
 
       end
