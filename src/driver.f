@@ -27,7 +27,7 @@ c     number of bins for binning the radial distribution function
 
       integer i,j,k,ii,iturn,i1,i2,ithistraj,frusflag(mnsurf),
      &  newsurf,iramp,ncross
-      double precision rminmax,ravg,ce,hrad,dot,peim
+      double precision rminmax,ravg,ce,hrad,dot,peim,ti1,ti2,tu1,tu2
       double precision rr(3),rhor(mnsurf,mnsurf),eig(3),dum3(3),
      &  rhoi(mnsurf,mnsurf),step,timeprev,phop(mnsurf),tmp1,tmp2,tmp3,
      &  dmag,dmag1,dmag2,gvmag,rrr,rmax(mnoutcome),rmin(mnoutcome),
@@ -119,8 +119,14 @@ c     initial coordinates and momenta
 
       call gettemp(pp,mm,nat,tempi,kei)
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+      if (my_id.eq.0) ti1=MPI_WTIME()
       call getgrad(xx,pp,nsurf,pei,cre,cim,gv,gcre,gcim,nat,
      & phop,dmag,dvec,pem,gpem,phase)
+      if (my_id.eq.0) then
+        ti2=MPI_WTIME()
+        write(6,'(" CPU time in initial force calc is ",f20.10," s",/)')
+     &          (ti2-ti1)
+      endif
       lastgap0 = lastgap  ! TEMP AJ
       lastgap = pem(1)-pem(2)  ! TEMP AJ
       call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
@@ -505,8 +511,13 @@ c stochastic decoherence
       endif
 
 c update info at new geometry
+      if (my_id.eq.0) tu1=MPI_WTIME()
       call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,
      &   phop,dmag,dvec,pem,gpem,phase)
+      if (my_id.eq.0) then
+        tu2=MPI_WTIME()
+       write(6,'(" CPU time in force calc is ",f20.10," s",/)')(tu2-tu1)
+      endif
       if (lzflag) then
         r10=r1
         r20=r2
@@ -890,9 +901,10 @@ c molden format
          else if (welli.eq.3) then 
            print *,"welli=",welli," not supported"
          endif
-       endif
-       if (lwrite(42)) call honey(ithistraj,xx,nat,time)
-       if (termflag.eq.2) then
+        endif
+        if (lwrite(42)) call honey(ithistraj,xx,nat,time)
+        IF (my_id.eq.0) THEN
+        if (termflag.eq.2) then
           if(nsurft.eq.1) then
             write(6,101)istep,time*autofs,pe*autoev,
      &    dsqrt(gvmag)*autoev/autoang
@@ -900,32 +912,33 @@ c molden format
             write(6,101)istep,time*autofs,(pem(j)*autoev,j=1,nsurft),
      &    dsqrt(gvmag)*autoev/autoang
           endif
-       else
-        if (nsurft.eq.1.and.lwell.eq.0) then
+        else
+          if (nsurft.eq.1.and.lwell.eq.0) then
 c          write(6,101)istep,time*autofs,temp,
 c     &    ke*autoev,pe*autoev,te*autoev,
 c     &    lind,atemp/time,stemp
-          write(6,103)istep,time*autofs,temp,
-     &    ke*autoev,pe*autoev,te*autoev,
-     &    lind,atemp/time,stemp
+            write(6,103)istep,time*autofs,temp,
+     &      ke*autoev,pe*autoev,te*autoev,
+     &      lind,atemp/time,stemp
 c     &    ,wellindex1,wellindex2,xwell
-        else if (nsurft.eq.1.and.lwell.gt.0) then
-          write(6,104)istep,istepw,time*autofs,temp,
-     &    ke*autoev,pe*autoev,te*autoev,
-     &    lind,atemp/time,stemp
-        else
+          else if (nsurft.eq.1.and.lwell.gt.0) then
+            write(6,104)istep,istepw,time*autofs,temp,
+     &      ke*autoev,pe*autoev,te*autoev,
+     &      lind,atemp/time,stemp
+          else
 c          write(6,101)istep,time*autofs,temp,
 c     &    ke*autoev,pe*autoev,te*autoev,
 c     &    (rhor(k,k),k=1,nsurft),pem(1)*autoev,pem(2)*autoev
 c temp
-          write(6,102)istep,time*autofs,temp,
-     &    ke*autoev,pe*autoev,te*autoev,
-     &    (rhor(k,k),k=1,nsurft),(pem(k)*autoev,k=1,nsurft)
-     &     ,dmag,h12x*autocmi
+            write(6,102)istep,time*autofs,temp,
+     &      ke*autoev,pe*autoev,te*autoev,
+     &      (rhor(k,k),k=1,nsurft),(pem(k)*autoev,k=1,nsurft)
+     &       ,dmag,h12x*autocmi
 c     &     dmag,h12x*autocmi,h12y*autocmi
 c     &    ,wellindex1,wellindex2,xwell
+          endif
         endif
-       endif
+        ENDIF
       endif
  101  format(i15,f15.3,20f21.9)
  102  format(i15,f15.3,100f15.5)
@@ -945,11 +958,13 @@ c ######################################################################
      &   write(16,'(2f13.5,2e18.5,3e18.5)')time*autofs,1.d4,
      &   phop(1)*step,rhor(1,1),
      &   (taup2(i)*autofs,i=1,3)
+      ENDIF
 
 c trajectory has ended
 
 c write final coordinates and momenta to output
       IF (outcome.ge.0) THEN
+      IF (my_id.eq.0) THEN
       if (termflag.eq.2) then
           write(6,101)istep,time*autofs,
      &    pe*autoev,dsqrt(gvmag)*autoev/autoang
@@ -968,6 +983,7 @@ c write final coordinates and momenta to output
      &     (rhor(k,k),k=1,nsurft)
         endif
       endif
+      ENDIF
 
       if (lwrite(41)) then
         call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
@@ -975,6 +991,7 @@ c write final coordinates and momenta to output
       if (lwrite(42)) call honey(ithistraj,xx,nat,time)
       ENDIF
 
+      IF (my_id.eq.0) THEN
       if (lwrite(20)) then
         write(20,*)ithistraj,pe*autoev
         do i=1,nat

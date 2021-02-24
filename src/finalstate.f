@@ -218,24 +218,24 @@ c     we hit the max steps before we dissociated
         nprod = 1
       else
         if (t_r(outcome).gt.0) then
-        IF (my_id.eq.0) THEN
-        write(6,*)"Dissociation"
-        write(6,*)"Broke a ",t_symb(outcome,1),"-",t_symb(outcome,2),
-     &  " bond with atom indices",aind(outcome,1),
-     &  " and ",aind(outcome,2)
+          IF (my_id.eq.0) THEN
+          write(6,*)"Dissociation"
+          write(6,*)"Broke a ",t_symb(outcome,1),"-",t_symb(outcome,2),
+     &    " bond with atom indices",aind(outcome,1),
+     &    " and ",aind(outcome,2)
         write(6,*)"Assigning fragment # based on shortest distance to ",
-     &  "the atoms in the broken bond"
-        ENDIF
-        nprod = 2
+     &    "the atoms in the broken bond"
+          ENDIF
+          nprod = 2
         else
-        IF (my_id.eq.0) THEN
-        write(6,*)"Association"
-        write(6,*)"Formed a ",t_symb(outcome,1),"-",t_symb(outcome,2),
-     &  " bond with atom indices",aind(outcome,1),
-     &  " and ",aind(outcome,2)
-        write(6,*)"Assigning all atoms to the same product fragment"
-        ENDIF
-        nprod = 1
+          IF (my_id.eq.0) THEN
+          write(6,*)"Association"
+          write(6,*)"Formed a ",t_symb(outcome,1),"-",t_symb(outcome,2),
+     &    " bond with atom indices",aind(outcome,1),
+     &    " and ",aind(outcome,2)
+          write(6,*)"Assigning all atoms to the same product fragment"
+          ENDIF
+          nprod = 1
         endif
       endif
       nfrag(1) = 0
@@ -292,7 +292,7 @@ c     we hit the max steps before we dissociated
         compag(k,j)=compag(k,j)-comp(k)/mmtot*mmfragtot(j)    ! overall momentum for fragment
       enddo
       enddo
-      write(6,*)
+      IF (my_id.eq.0) write(6,*)
 
       do j=1,nprod
         IF (my_id.eq.0) THEN
@@ -301,7 +301,7 @@ c     we hit the max steps before we dissociated
         if (nfrag(j).eq.1.and.mmfragtot(j).eq.15.9949d0) print *,"REACT"
         ENDIF
       enddo
-      write(6,*)
+      IF (my_id.eq.0) write(6,*)
 
       if (nprod.eq.2) then
 c     relative reduced mass

@@ -47,8 +47,8 @@ c msx search variables
      &   dot1,egap,gf(3,mnat),gg(3,mnat),msx_grad(3,mnat)
 
 ccccc MPI
-      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
-      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
+!      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+!      call MPI_COMM_RANK(MPI_COMM_WORLD, my_id, ierr)
 
 c      print *,((xx(i,j),i=1,3),j=1,3),((pp(i,j),i=1,3),j=1,3)
 c ZERO
@@ -59,7 +59,7 @@ c ZERO
 c GET ENERGIES
       call MPI_BARRIER(MPI_COMM_WORLD, ierr)
       call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symbol)
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+!      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
 
 c POTENTIAL ENERGIES AND GRADIENTS
       IF (METHFLAG.EQ.0.OR.METHFLAG.EQ.1.OR.METHFLAG.EQ.5) THEN
