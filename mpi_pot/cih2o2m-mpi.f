@@ -22,7 +22,7 @@ c NEW "AUTOFIT" PESs
       integer itinkxyz
       logical ltinkm
 
-      dimension tmpperint(50)
+      dimension tmpprint(50)
       common/tmp/tmpprint
 
 ccccc MPI
