@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratories     
+c  Argonne National Laboratory     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
