@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratory     
+c  Argonne National Laboratories     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -47,9 +47,7 @@ c GPEM = Gradients of the adiabatic or diabatic potential energies.
       implicit none
       include 'param.f'
       include 'c_sys.f'
-#ifdef MPIFORCES
-      include 'mpif.h'
-#endif
+
 c temp
       double precision taup(3),taup2(3)
       common/tauprint/taup,taup2
@@ -83,13 +81,7 @@ c ZERO
       enddo
 
 c GET ENERGIES
-#ifdef MPIFORCES
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
       call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symbol)
-#ifdef MPIFORCES
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
 
 c POTENTIAL ENERGIES AND GRADIENTS
       IF (METHFLAG.EQ.0.OR.METHFLAG.EQ.1.OR.METHFLAG.EQ.5) THEN
@@ -99,20 +91,20 @@ c     single surface propagation or surface hopping calculation
 c       adiabatic
         v = pema(nsurf)
         do i=1,3
-          do j=1,nclu
-            gv(i,j)=gpema(i,j,nsurf)
-          enddo
+        do j=1,nclu
+          gv(i,j)=gpema(i,j,nsurf)
+        enddo
         enddo
       else if (repflag.eq.1) then
 c       diabatic
         v = pemd(nsurf,nsurf)
         do i=1,3
-          do j=1,nclu
-            gv(i,j)=gpemd(i,j,nsurf,nsurf)
-          enddo
+        do j=1,nclu
+          gv(i,j)=gpemd(i,j,nsurf,nsurf)
+        enddo
         enddo
       else
-        IF (my_rank.eq.0) write(6,*)"REPFLAG = ",repflag," in GETPOT"
+        write(6,*)"REPFLAG = ",repflag," in GETPOT"
         stop
       endif
 
@@ -123,27 +115,28 @@ c     convert electronic variables to density matrix
       call getrho(cre,cim,rhor,rhoi,nsurft)
 
       if (repflag.eq.1) then
+
 c       diabatic representation
         v = 0.d0
         do k=1,nsurft
-          do l=1,nsurft
+        do l=1,nsurft
 c integrate phase angle separately
-            tmp = phase(l)-phase(k)
-            sntmp = dsin(tmp)
-            cstmp = dcos(tmp)
-            rhotmp = (rhor(k,l)*cstmp+rhoi(k,l)*sntmp)
-c imaginary terms cancel exactly
-            v=v+rhotmp*pemd(k,l)
+        tmp = phase(l)-phase(k)
+        sntmp = dsin(tmp)
+        cstmp = dcos(tmp)
+        rhotmp = (rhor(k,l)*cstmp+rhoi(k,l)*sntmp)
+c       imaginary terms cancel exactly
+        v=v+rhotmp*pemd(k,l)
 c end
 c integrate whole coefficient
 c        v = v + rhor(k,l)*pemd(k,l)
 c end
-          enddo
+        enddo
         enddo
         do 15 i=1,3
-          do 15 j=1,nclu
-            gv(i,j) = 0.d0
-          do 15 k=1,nsurft
+        do 15 j=1,nclu
+        gv(i,j) = 0.d0
+        do 15 k=1,nsurft
         do 15 l=1,nsurft
 c integrate phase angle separately
         tmp = phase(l)-phase(k)
@@ -162,56 +155,55 @@ c end
 c       adiabatic representation
         v = 0.d0
         do k=1,nsurft
-          v = v + rhor(k,k)*pema(k)
+        v = v + rhor(k,k)*pema(k)
         enddo
         do 20 i=1,3
-          do 20 j=1,nclu
-            gv(i,j) = 0.d0
-            do 20 k=1,nsurft
-            gv(i,j) = gv(i,j) + rhor(k,k)*gpema(i,j,k)
-            do 20 l=1,nsurft
+        do 20 j=1,nclu
+        gv(i,j) = 0.d0
+        do 20 k=1,nsurft
+        gv(i,j) = gv(i,j) + rhor(k,k)*gpema(i,j,k)
+        do 20 l=1,nsurft
 c integrate whole coefficient
 c        gv(i,j) = gv(i,j) - 2.d0*rhor(k,l)*dvec(i,j,k,l)*pema(k)
 c end
 c integrate phase angle separately
-            tmp = phase(k)-phase(l)
-            sntmp = dsin(tmp)
-            cstmp = dcos(tmp)
-            rhotmp = (rhor(k,l)*cstmp-rhoi(k,l)*sntmp)
-            gv(i,j) = gv(i,j) - 2.d0*rhotmp*dvec(i,j,k,l)*pema(k)
+        tmp = phase(k)-phase(l)
+        sntmp = dsin(tmp)
+        cstmp = dcos(tmp)
+        rhotmp = (rhor(k,l)*cstmp-rhoi(k,l)*sntmp)
+        gv(i,j) = gv(i,j) - 2.d0*rhotmp*dvec(i,j,k,l)*pema(k)
 c end
   20    continue
 
       else
-        IF (my_rank.eq.0) write(6,*)"REPFLAG = ",repflag," in GETGRAD"
+        write(6,*)"REPFLAG = ",repflag," in GETGRAD"
         stop
       endif
 
       ELSE
 
-        IF (my_rank.eq.0) write(6,*)
-     &      "METHFLAG = ",methflag," is not allowed in GETPOT"
-        stop
+      write(6,*)"METHFLAG = ",methflag," is not allowed in GETPOT"
+      stop
 
       ENDIF
 
 c FOR USE BY CSDM, MAGNITUDE OF D
 c      if (methflag.eq.4) then
-c     compute sum of magnitude of coupled DVECs
-      dmag = 0.d0
-      do k=1,nsurft
-        dsum2 = 0.d0
-        if (k.ne.nsurf) then
-          do i=1,3
-          do j=1,nclu
-            dsum2 = dsum2 + dvec(i,j,k,nsurf)**2
-          enddo
-          enddo
-        endif
-        dsum2 = max(0.d0,dsum2)
-        dsum2 = dsqrt(dsum2)
-        dmag = dmag + dsum2
-      enddo
+c       compute sum of magnitude of coupled DVECs
+        dmag = 0.d0
+        do k=1,nsurft
+          dsum2 = 0.d0
+          if (k.ne.nsurf) then
+            do i=1,3
+            do j=1,nclu
+              dsum2 = dsum2 + dvec(i,j,k,nsurf)**2
+            enddo
+            enddo
+          endif
+          dsum2 = max(0.d0,dsum2)
+          dsum2 = dsqrt(dsum2)
+          dmag = dmag + dsum2
+        enddo
 c      endif
 
 c TIME-DERIVATIVES OF THE ELECTRONIC COORDINATES
@@ -289,7 +281,7 @@ c end
             enddo
           enddo
         else
-          IF (my_rank.eq.0) write(6,*)"REPFLAG = ",repflag," in GETGRAD"
+          write(6,*)"REPFLAG = ",repflag," in GETGRAD"
           stop
         endif
       endif
@@ -365,7 +357,7 @@ c end
             enddo
           enddo
         else
-          IF (my_rank.eq.0) write(6,*)"REPFLAG = ",repflag," in GETGRAD"
+          write(6,*)"REPFLAG = ",repflag," in GETGRAD"
           stop
         endif
       endif
@@ -433,10 +425,10 @@ c         compute PP dot DVEC2b2 / |DVEC2b2|
           enddo
           enddo
           if (dvecmag.lt.1.d-40) then
-            pdotd = 0.d0
+          pdotd = 0.d0
           else
-            dvecmag = dsqrt(dvecmag)
-            pdotd = pdotd/dvecmag
+          dvecmag = dsqrt(dvecmag)
+          pdotd = pdotd/dvecmag
           endif
 
 c         compute SVEC(i,j,k) = DVEC2b2*PP_DVEC+PPVIB
@@ -448,8 +440,8 @@ c         compute SVEC(i,j,k) = DVEC2b2*PP_DVEC+PPVIB
           enddo
           enddo
           if (smagms.le.0.d0) then
-c           problem
-            go to 99
+c         problem
+          go to 99
           endif
           smagms = dsqrt(smagms)
 c         Note:  SVEC is not mass-scaled
@@ -524,8 +516,7 @@ c           diagonal terms
                 endif
               enddo
             else
-              IF (my_rank.eq.0) write(6,*)
-     &          "Strange things in GETGRAD (1)..."
+              write(6,*)"Strange things in GETGRAD (1)..."
               stop
             endif
             do l=1,nsurft
@@ -568,8 +559,7 @@ c           diagonal terms
                 endif
               enddo
             else
-              IF (my_rank.eq.0) write(6,*)
-     &           "Strange things in GETGRAD (1)..."
+              write(6,*)"Strange things in GETGRAD (1)..."
               stop
             endif
           enddo
@@ -578,20 +568,20 @@ c           diagonal terms
 c       compute decoherent force
         do i=1,3
         do j=1,nclu
-          pdeco(i,j) = 0.d0
-          do k=1,nsurft
-            if (k.ne.nsurf) then
-c             magnitude of svec cancels magnitude of svec in ps(k)
-              pdeco(i,j)=pdeco(i,j)-vd(k)*svec(i,j,k)/ps(k)
-            endif
-          enddo
+        pdeco(i,j) = 0.d0
+        do k=1,nsurft
+        if (k.ne.nsurf) then
+c       magnitude of svec cancels magnitude of svec in ps(k)
+        pdeco(i,j)=pdeco(i,j)-vd(k)*svec(i,j,k)/ps(k)
+        endif
+        enddo
         enddo
         enddo
 
 c       add decoherent terms to electronic probs
         do k=1,nsurft
-          gcre(k) = gcre(k) + gcred(k)
-          gcim(k) = gcim(k) + gcimd(k)
+        gcre(k) = gcre(k) + gcred(k)
+        gcim(k) = gcim(k) + gcimd(k)
         enddo
 
 c       add force to grad v
@@ -600,7 +590,7 @@ c       in XPTOY
 
         do i=1,3
         do j=1,nclu
-          gv(i,j) = gv(i,j) - pdeco(i,j)
+        gv(i,j) = gv(i,j) - pdeco(i,j)
         enddo
         enddo
       endif
@@ -625,53 +615,6 @@ c save PEM as the diagonal elements of whichever represenation we are using
         enddo
         endif
       enddo
-
-!c overwrite gradients if we are doing a MSX search
-!      if (tflag(1).eq.4) then
-!
-!c     get upper state index
-!      nupper=2
-!      if (pem(1).gt.pem(2)) nupper=1
-!      egap=pem(1)-pem(2)
-!
-!c     get x1 and gupper
-!
-!      x1mag = 0.d0
-!      do i=1,nclu
-!      do j=1,3
-!        x1(j,i)   = gpem(j,i,1)-gpem(j,i,2)    ! grad(E1-E2)
-!        x1mag     = x1mag+x1(j,i)**2
-!        gupp(j,i) = gpem(j,i,nupper)           ! grad of upper surface
-!      enddo
-!      enddo
-!      x1mag = dsqrt(x1mag)                   ! magnitude of grad(E1-E2)
-!
-!c     for zero nonadiabatic coupling...
-!c     compute dot prod
-!      dot1=0.d0
-!      do i=1,nclu
-!      do j=1,3
-!        dot1=dot1+x1(j,i)*gupp(j,i)/x1mag    ! grad upper . x1/x1mag
-!      enddo
-!      enddo
-!
-!c     project out componenets in the direction of x1
-!      do i=1,nclu
-!      do j=1,3
-!      gf(j,i) = 2.d0*egap*x1(j,i)/x1mag      ! f = 2*(E1-E2)*x1/x1mag
-!      gg(j,i) = gupp(j,i)-dot1*x1(j,i)/x1mag ! g = grad upper projected onto plane perp to f
-!      msx_grad(j,i) = gg(j,i)+gf(j,i)            ! total gradient
-!      enddo
-!      enddo
-!
-!c     replace gradient with msx_grad
-!      do i=1,nclu
-!      do j=1,3
-!        gv(j,i)=msx_grad(j,i)
-!      enddo
-!      enddo
-!
-!      endif
 
       return
       end

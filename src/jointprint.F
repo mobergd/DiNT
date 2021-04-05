@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratory     
+c  Argonne National Laboratories     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -48,7 +48,7 @@ c The current path now should be located in the job path
 ccccccccccccccccccccccccccccccccccccccccccc
 c     unit 6 output: standard output
 ccccccccccccccccccccccccccccccccccccccccccc
-      if (.true.) then
+      if ( .true. ) then
         fwrite = 100 + 6
         fread  = 200 + 6 
         open(fwrite,FILE='output',ACTION='write')
@@ -60,16 +60,16 @@ c         set processor-specific paramters
           filep = trim(job_path)//'/'//rank_str//'/output'
 
 c         open filep
-          open(fread, FILE = filep, ACTION = 'read')        
+          open( fread, FILE = filep, ACTION = 'read' )        
 
 c         print headstr of rank 0 file, ignore for other ranks
-          read(fread,'(A)',iostat=io) line 
+          read( fread,'(A)',iostat=io ) line 
           
           do while(index(line," ***TRAJECTORY   ").eq.0)
 c           check whether read flawlessly
             if (io.ne.0) then
-              write(fwrite, *) "Wrong when reading file ",filep
-              return
+                write( fwrite, * ) "Wrong when reading file ",filep
+                return
             endif
 c           only for the rank 0
             if (rank.eq.0) then 
@@ -122,7 +122,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.10'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then          
+          if (existcode.eq..true.) then          
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           hederstr
@@ -160,7 +160,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.11'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then  
+          if (existcode.eq..true.) then  
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )
 c           hederstr
@@ -197,7 +197,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.20'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then            
+          if (existcode.eq..true.) then            
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           hederstr
@@ -234,7 +234,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.21'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then          
+          if (existcode.eq..true.) then          
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           hederstr
@@ -271,7 +271,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.30'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then          
+          if (existcode.eq..true.) then          
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           the same print for all ranks
@@ -297,9 +297,9 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.31'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then          
+          if (existcode.eq..true.) then          
 c           open filep
-            open(fread, FILE = filep, ACTION = 'read')
+            open( fread, FILE = filep, ACTION = 'read' )      
 c           the same print for all ranks
             read(fread,'(A)',iostat=io) longline
             do while(io.eq.0)
@@ -318,13 +318,13 @@ cccccccccccccccccccccccccccccccccccccccccc
         open(fwrite,FILE='fort.40',ACTION='write')
 c       loop over all folders
         do rank=0,nproc-1
-c         set processor-specific paramters
+c         set processor-specific paramters     
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.40'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then
+          if (existcode.eq..true.) then  
 c           open filep
-            open(fread, FILE = filep, ACTION = 'read')
+            open( fread, FILE = filep, ACTION = 'read' )      
 c           the same print for all ranks
             read(fread,'(A)',iostat=io) line
             do while(io.eq.0)
@@ -347,7 +347,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.41'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then  
+          if (existcode.eq..true.) then  
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           the same print for all ranks
@@ -371,7 +371,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.42'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then  
+          if (existcode.eq..true.) then  
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           the same print for all ranks
@@ -396,7 +396,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.43'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then  
+          if (existcode.eq..true.) then  
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           the same print for all ranks
@@ -422,7 +422,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.80'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then  
+          if (existcode.eq..true.) then  
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           hederstr
@@ -460,7 +460,7 @@ c         set processor-specific paramters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/fort.81'
           inquire(file=filep, exist=existcode)
-          if (existcode.eqv..true.) then  
+          if (existcode.eq..true.) then  
 c           open filep
             open( fread, FILE = filep, ACTION = 'read' )      
 c           hederstr

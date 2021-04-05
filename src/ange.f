@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratory     
+c  Argonne National Laboratories     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -35,9 +35,6 @@ c Compute rotational energies around principal axes
 
       implicit none
       include 'param.f'
-#ifdef MPIFORCES
-      include 'mpif.h'
-#endif
 
       integer natom
       double precision xx(3,mnat),pp(3,mnat),mm(mnat),

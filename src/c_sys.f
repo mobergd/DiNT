@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratory     
+c  Argonne National Laboratories     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -45,7 +45,6 @@ c my_rank    Rank of processor
 c my_itraj   The start # of the trajectory of this processor 
 c my_ntraj   The end # of the trajectory of this processor
 c nproc      Total number of prcoessor
-c ierr       Error code
 c job_path   The absolute path of the folder you submit the job. This wll be got from pwd()
 c work_path  The current working path for each processor. If DINT_TMP_DIR is defined, 
 c            work_path equals to $DINT_TMP_DIR plus a processor number
@@ -58,7 +57,7 @@ c            This variable can be set by the sysytem enviroment variable
 c            DINT_DELETE_TMP. It can be set to be yes or no in lower letter.
 c            e.g. " export DINT_DELETE_TMP=yes"  or
 c                 " export DINT_DELETE_TMP=no"
-        integer my_rank, my_itraj, my_ntraj, nproc, ierr
+        integer my_rank, my_itraj, my_ntraj, nproc
         character(len=256) :: work_path, job_path
         logical  ltmpdir,ldeltmp 
         common/c_mpi/my_rank, my_itraj, my_ntraj, nproc, work_path, 
@@ -197,17 +196,14 @@ c                if the electronic energy gap is ephoton +/- wphoton)
       double precision nmvec(3,mnat,3*mnat,mnmol),freq(3*mnat,mnmol),
      & rturn(3*mnat,mnmol),ewell(mnmol),nmqn(3*mnat,mnmol)
       logical lreadhess,lbinsamp(mnmol),lems(mnmol),
-     & letot(mnmol),lnorot(mnmol)
-      logical lbinsamp2(mnmol)
+     & letot(mnmol),lnorot(mnmol) 
 
       double precision rmindi(mnmol),vvdi(mnmol),jjdi(mnmol),
      &    rindi(mnmol),routdi(mnmol),taudi(mnmol),xtaudi(mnmol)
 
       integer samptot(mnmol),nemstot(mnmol),
      & ninc(mnmol),nbrea(mnmol)
-      integer samptot2(mnmol)
       character*10 sampfilexx(mnmol),sampfilepp(mnmol)
-      character*10 sampfilexx2(mnmol),sampfilepp2(mnmol)
       double precision samptarg(mnmol),sampjmin(mnmol),sampjmax(mnmol),
      & sampjtemp1(mnmol),sampjtemp2(mnmol),
      & sampjbrot1(mnmol),sampjbrot2(mnmol),

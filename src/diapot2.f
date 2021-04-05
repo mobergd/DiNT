@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratory     
+c  Argonne National Laboratories     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -37,10 +37,6 @@ c Compute the diatomic energy.
       implicit none
       include 'param.f'
       include 'c_sys.f'
-#ifdef MPIFORCES
-      include 'mpif.h'
-#endif
-
       integer j,nsurf,i
       double precision v,xx(3,mnat),xj,erot,rmass,x,
      &  mmm(2)

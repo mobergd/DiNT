@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratory     
+c  Argonne National Laboratories     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -29,6 +29,7 @@ c  copyright  2020
 c  Donald G. Truhalar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
+
       subroutine normod(xx0,mm,nclu,nmvec,freq,ewell,
      &   repflag,nsurf,rturn,nmqn,lreadhess,ldofrag,symb,nmtype)
 
@@ -41,9 +42,6 @@ c                          distance for each mode (mass-scaled).
 
       implicit none
       include 'param.f'
-#ifdef MPIFORCES
-      include 'mpif.h'
-#endif
 
 c     input
       logical lreadhess,ldofrag
@@ -65,101 +63,84 @@ c     local
      & nmvec1(3*mnat,3*mnat),work(lwork),hess(3*mnat,3*mnat),
      & gvsum,rturn(3*mnat),etotvib,temp(3*mnat),tmp,rr
 
-ccccc MPI
-!      call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
-!      call MPI_COMM_RANK(MPI_COMM_WORLD, my_rank, ierr)
-
       if (nclu.lt.2) then
-        IF (my_rank.eq.0)
-     &    write(6,*)"cant do normal modes for ",nclu," atoms"
+        write(6,*)"cant do normal modes for ",nclu," atoms"
         stop
       endif
- 
+
 c Initialize
       do i=1,3*mnat
-        do j=1,3*mnat
-          hess(i,j) = 0.d0
-        enddo
+      do j=1,3*mnat
+      hess(i,j) = 0.d0
+      enddo
       enddo
 
 c Check geometry
       if (ldofrag) then
+      do k=1,3
+      do l=1,nclu
+        xx(k,l) = xx0(k,l)
+      enddo
+      enddo
+      call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symb)
+      if (repflag.eq.0) then
+c       adiabatic
+        ewell = pema(nsurf)
         do k=1,3
-          do l=1,nclu
-            xx(k,l) = xx0(k,l)
-          enddo
-        enddo
-        call getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symb)
-        if (repflag.eq.0) then
-c         adiabatic
-          ewell = pema(nsurf)
-          do k=1,3
-            do l=1,nclu
-              gv1(k,l) = gpema(k,l,nsurf)
-            enddo
-          enddo
-        elseif (repflag.eq.1) then
-c         diabatic
-          ewell = pemd(nsurf,nsurf)
-          do k=1,3
-            do l=1,nclu
-              gv1(k,l) = gpemd(k,l,nsurf,nsurf)
-            enddo
-          enddo
-        else
-          IF (my_rank.eq.0) 
-     &      write(6,*)"REPFLAG = ",repflag," in NORMOD"
-          stop
-        endif
-        IF (my_rank.eq.0) THEN 
-        write(6,'(a,f19.10)')"Energy at this geometry = ",ewell*autoev
-        write(6,*)
-        write(6,*)"      Atom      x,y,z      Gradient (eV/A)"
-        ENDIF
-        gvsum = 0.d0
         do l=1,nclu
-          do k=1,3
-            write(6,100)l,k,gv1(k,l)*autoev/autoang
-            gvsum = gvsum + gv1(k,l)**2
-          enddo
+          gv1(k,l) = gpema(k,l,nsurf)
         enddo
-        gvsum = dsqrt(gvsum)
- 100  format(2i10,f20.10)
-        IF (my_rank.eq.0) THEN 
-       write(6,*)"Magnitude of gradient = ",gvsum*autoev/autoang," eV/A"
-        write(6,*)
-        ENDIF
+        enddo
+      elseif (repflag.eq.1) then
+c       diabatic
+        ewell = pemd(nsurf,nsurf)
+        do k=1,3
+        do l=1,nclu
+          gv1(k,l) = gpemd(k,l,nsurf,nsurf)
+        enddo
+        enddo
+      else
+        write(6,*)"REPFLAG = ",repflag," in NORMOD"
+        stop
       endif
-
-      IF (my_rank.eq.0) THEN 
+      write(6,'(a,f19.10)')"Energy at this geometry = ",ewell*autoev
+      write(6,*)
+      write(6,*)"      Atom      x,y,z      Gradient (eV/A)"
+      gvsum = 0.d0
+      do l=1,nclu
+      do k=1,3
+        write(6,100)l,k,gv1(k,l)*autoev/autoang
+        gvsum = gvsum + gv1(k,l)**2
+      enddo
+      enddo
+      gvsum = dsqrt(gvsum)
+      write(6,*)"Magnitude of gradient = ",gvsum*autoev/autoang," eV/A"
+      write(6,*)
+ 100  format(2i10,f20.10)
+      endif
       write(6,*)"Computing and diagonalizing Hessian..."
       write(6,*)
-      ENDIF
+
       IF (lreadhess) THEN
-c       read in Hessian from fort.70
-        IF (my_rank.eq.0) THEN
-        write(6,*)"Reading Hessian from unit 70"
-        open(70)
-        do i=1,3
-        do j=1,nclu
-          ij = (i-1)*nclu + j
-          do k=1,3
-          do l=1,nclu
-            kl = (k-1)*nclu + l
-              read(70,*)i1,i2,hess(i1,i2)
-              hess(i1,i2) = hess(i1,i2)*mu/dsqrt(mm(j)*mm(l))
-              if (i1.ne.ij.or.i2.ne.kl) then
-                write(6,*)"Index mismatch reading Hessian from unit 70"
-                stop
-              endif
-          enddo
-          enddo
+c     read in Hessin from fort.70
+      write(6,*)"Reading Hessian from unit 70"
+      open(70)
+      do i=1,3
+      do j=1,nclu
+        ij = (i-1)*nclu + j
+        do k=1,3
+        do l=1,nclu
+          kl = (k-1)*nclu + l
+             read(70,*)i1,i2,hess(i1,i2)
+             hess(i1,i2) = hess(i1,i2)*mu/dsqrt(mm(j)*mm(l))
+             if (i1.ne.ij.or.i2.ne.kl) then
+               write(6,*)"Index mismatch reading Hessian from unit 70"
+               stop
+             endif
         enddo
         enddo
-#ifdef MPIFORCES
-        call MPI_BCAST(hess, 3*mnat*3*mnat, MPI_DOUBLE_PRECISION,
-     &                 0, MPI_COMM_WORLD, ierr)
-#endif
+      enddo
+      enddo
       ELSE
 c Compute Hessian matrix from gradients
 c     stepsize
@@ -167,7 +148,7 @@ c     stepsize
 c      hh = 0.001d0
       do i=1,3
       do j=1,nclu
-       IF (my_rank.eq.0) print *,'doing step ',i,',',j,' out of 3,',nclu
+        write(6,*)'doing step ',i,',',j,' out of 3,',nclu
         ij = (i-1)*nclu + j
         do k=1,3
         do l=1,nclu
@@ -191,7 +172,7 @@ c         diabatic
           enddo
           enddo
         else
-          IF (my_rank.eq.0) write(6,*)"REPFLAG = ",repflag," in NORMOD"
+          write(6,*)"REPFLAG = ",repflag," in NORMOD"
           stop
         endif
         xx(i,j) = xx0(i,j) - hh
@@ -211,7 +192,7 @@ c         diabatic
           enddo
           enddo
         else
-          IF (my_rank.eq.0) write(6,*)"REPFLAG = ",repflag," in NORMOD"
+          write(6,*)"REPFLAG = ",repflag," in NORMOD"
           stop
         endif
         open(70)
@@ -221,7 +202,7 @@ c         diabatic
 c         Hessian matrix, 3NCLU X 3NCLU matrix
 c         data ordered (x1,x2,...,y1,...,z1,...,zNCLU)
           hess(ij,kl) = (gv1(k,l) - gv2(k,l))/(2.d0*hh)
-          IF (my_rank.eq.0) write(70,770)ij,kl,hess(ij,kl)
+          write(70,770)ij,kl,hess(ij,kl)
  770      format(2i10,d20.8)
 c         mass-scale
           hess(ij,kl) = hess(ij,kl)*mu/dsqrt(mm(j)*mm(l))
@@ -229,7 +210,7 @@ c         mass-scale
         enddo
       enddo
       enddo
-      IF (my_rank.eq.0) write(6,*)"Hessian written to unit 70"
+      write(6,*)"Hessian written to unit 70"
       ENDIF
 
 c diagonlize the hessian
@@ -238,8 +219,7 @@ c diagonlize the hessian
       call dsyev( 'v','u',ndim,hess,nmax,freq,work,lwork,info )
 c     FREQ is always ordered from smallest value to largest
 
-      IF (my_rank.eq.0) write(6,*)
-     &  "   Index  Force Const (mass-scaled Eh/a0^2) Freq(cm-1)"
+      write(6,*)"   Index  Force Const (mass-scaled Eh/a0^2) Freq(cm-1)"
       do k=1,ndim
         if (freq(k).gt.0.d0) then
             tmp=dsqrt(freq(k)/mu)
@@ -248,12 +228,10 @@ c     FREQ is always ordered from smallest value to largest
         endif
         write(6,150)k,freq(k),tmp*autocmi
       enddo
-      IF (my_rank.eq.0) THEN
       write(6,*)
+ 150  format(i10,e15.5,f15.5)
       write(6,*)"Keeping 3N-6 modes with largest magnitude frequencies."
       write(6,*)
-      ENDIF
- 150  format(i10,e15.5,f15.5)
 
 c repackage (order from biggest to smallest)
       do k=1,ndim
@@ -279,10 +257,8 @@ c repackage (order from biggest to smallest)
 c       convert force constant to units of 1/time in atomic units
         freq(k) = dsqrt(freq(k)/mu)
         else
-        IF (my_rank.eq.0) THEN
         write(6,*)"Negative frequency for mode ",k," !"
         write(6,*)"Cant do unbound modes!"
-        ENDIF
         stop
         endif
       enddo
@@ -290,10 +266,8 @@ c       convert force constant to units of 1/time in atomic units
         if (freq(ndim).lt.0.d0) then
           freq(ndim-6) = -dsqrt(-freq(ndim)/mu)
         else
-          IF (my_rank.eq.0) THEN
           write(6,*)"Positive frequency for mode ",k," !"
           write(6,*)"Cant do bound modes!"
-          ENDIF
           stop
         endif
         do i=1,3
@@ -304,7 +278,6 @@ c       convert force constant to units of 1/time in atomic units
         enddo
       endif
 
-      IF (my_rank.eq.0) THEN
       write(6,*)"     Mode   Freq (1/fs)    ZPE (eV) Freq (cm-1) "
 c      do k=1,ndim-6
       do k=1,nbound
@@ -318,30 +291,24 @@ c      do k=1,ndim-6
         write(6,200)k,((nmvec(i,j,k),i=1,3),j=1,nclu)
       enddo
       write(6,*)
-      ENDIF
  200  format(i10,100f13.5)
 
 c compute HO turning points for each mode
-      IF (my_rank.eq.0) THEN
       write(6,*)"Harmonic turning point info"
       write(6,*)"     Mode     Q. Number  Energy (eV) ",
      &  " Distance (mass-scaled bohr)"
-      ENDIF
       etotvib = 0.d0
       do k=1,nbound
         evib = freq(k)*(nmqn(k)+0.5d0)
         etotvib = etotvib + evib
         rturn(k) = dsqrt(2.d0*evib/(freq(k)**2*mu)) 
-        IF (my_rank.eq.0) write(6,300)k,nmqn(k),evib*autoev,rturn(k)
+        write(6,300)k,nmqn(k),evib*autoev,rturn(k)
  300    format(i10,f8.2,3f12.5)
       enddo
 
-      IF (my_rank.eq.0) THEN
       write(6,*)"HO approximation to the internal energy = ",
      &   etotvib*autoev,"eV"
       write(6,*)"HO approximation to the total energy    = ",
      &   (ewell+etotvib)*autoev,"eV"
       write(6,*)
-      ENDIF
-
       end

@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratory     
+c  Argonne National Laboratories     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -29,6 +29,7 @@ c  copyright  2020
 c  Donald G. Truhalar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
+
       subroutine driver
 
 c Computes a full trajectory from start to finish.
@@ -39,10 +40,6 @@ c Computes a full trajectory from start to finish.
       include 'c_traj.f'
       include 'c_ran.f'
       include 'c_output.f'
-#ifdef MPIFORCES
-      include 'mpif.h'
-      integer status(MPI_STATUS_SIZE)
-#endif
 
 c     temporary use information
       common/tmp/tmpprint
@@ -57,17 +54,17 @@ c     number of bins for binning the radial distribution function
       parameter(nbinrad=60)
 
       integer i,j,k,ii,iturn,i1,i2,ithistraj,frusflag(mnsurf),
-     &  newsurf,iramp,ncross
-      double precision rminmax,ravg,ce,hrad,dot,peim,ppy,ppp(3)
+     &  newsurf,iramp,ncross,nbz2
+      double precision rminmax,ravg,ce,hrad,dot,peim,tbz2,tbz0,tbzf
       double precision rr(3),rhor(mnsurf,mnsurf),eig(3),dum3(3),
      &  rhoi(mnsurf,mnsurf),step,timeprev,phop(mnsurf),tmp1,tmp2,tmp3,
      &  dmag,dmag1,dmag2,gvmag,rrr,rmax(mnoutcome),rmin(mnoutcome),
      &  dvec(3,mnat,mnsurf,mnsurf),gpem(3,mnat,mnsurf),
-     &  arij(mnat,mnat),arij2(mnat,mnat),lind,
-     &  raddist(0:nbinrad+1),egap,rtmp,rcom,tmp4,ecom,
+     &  arij(mnat,mnat),arij2(mnat,mnat),lind,ppp(3),ppy,ppm,
+     &  raddist(0:nbinrad+1),egap,rtmp,rcom,tmp4,ecom,ecom2,
      &  lastgap0,lastgap,plz,plz0,elz,plzx,elz0,elzx,lastcross,
      &  hlz,hlz0,hlzx,glz,glzx,glz0,r1,r10,r1x,r2,r20,r2x, 
-     &  a123,a1230,a123x,r3,vlz,vlz0,vlzx,pairy(2),pairy0(2),pairyx(2)
+     7  a123,a1230,a123x,r3,vlz,vlz0,vlzx,pairy(2),pairy0(2),pairyx(2)
       logical lhop
 
 c used for FSTU
@@ -88,30 +85,20 @@ c stochastic decoherence
       integer wellindex1,wellindex2,n1,n2,ijk
       double precision xwell,rvdw,evdw
       logical lzflag
-
-#ifdef MPIFORCES
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-      do i=1,nat
-        call MPI_BCAST(symbol(i), 2, MPI_CHARACTER,
-     &                 0, MPI_COMM_WORLD, ierr)
-      enddo
-#endif
-
       lzflag=.false.
       if (tflag(4).lt.0) lzflag=.true.
 c      rvdw=0.d0
       evdw=1000.d0
 
 c initialize for this trajectory
-      lastgap0 = 0.d0 ! TEMP AJ
-      lastgap = 0.d0 ! TEMP AJ
-      lastcross = 0.d0 ! TEMP AJ
-      ncross = 0 ! TEMP AJ
+      lastgap0 =0.d0 ! TEMP AJ
+      lastgap =0.d0 ! TEMP AJ
+      lastcross =0.d0 ! TEMP AJ
+      ncross =0 ! TEMP AJ
       nhop = 0
       time = 0.d0
       stodecotime = -1.d0
       stodecotau = 4.d0/autofs
-      iturn = 0
       dmag1 = 0.d0
       dmag2 = 0.d0
       do i=1,nsurft
@@ -120,10 +107,10 @@ c initialize for this trajectory
       enddo
       lfrust = .false.
       do i=1,mnat
-        do j=1,mnat
-          arij(i,j) = 0.d0
-          arij2(i,j) = 0.d0
-        enddo
+      do j=1,mnat
+        arij(i,j) = 0.d0
+        arij2(i,j) = 0.d0
+      enddo
       enddo
       atemp = 0.d0
       atemp2 = 0.d0
@@ -137,7 +124,7 @@ c initialize for this trajectory
       istepw = 0
       step = 0.d0
 
-      if (lchkdis.eqv..true.) then
+      if (lchkdis.eq..true.) then
         iturn = 0
       else
         iturn =1
@@ -146,19 +133,12 @@ c initialize for this trajectory
 c calculate and save initial values of things for later analysis
 c     initial coordinates and momenta
       do i=1,nat
-        do j=1,3
-          xxi(j,i)=xx(j,i)
-          ppi(j,i)=pp(j,i)
-        enddo
+      do j=1,3
+         xxi(j,i)=xx(j,i)
+         ppi(j,i)=pp(j,i)
       enddo
-
-#ifdef MPIFORCES
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
+      enddo
       call gettemp(pp,mm,nat,tempi,kei)
-#ifdef MPIFORCES
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
       call getgrad(xx,pp,nsurf,pei,cre,cim,gv,gcre,gcim,nat,
      & phop,dmag,dvec,pem,gpem,phase)
       lastgap0 = lastgap  ! TEMP AJ
@@ -167,8 +147,6 @@ c     initial coordinates and momenta
 
       tei=kei+pei
       call ange(xx,pp,mm,nat,eig,bigji,bigjtoti,eroti,erottoti)
-
-      IF (my_rank.eq.0) THEN
       write(6,106)"Initial overall ang momentum = ",bigjtoti," au"
       write(6,106)"Initial overall rot energy   = ",erottoti*autoev,
      & " eV"
@@ -176,38 +154,33 @@ c     initial coordinates and momenta
       write(6,106)"Initial potential energy     = ",pei*autoev," eV"
       write(6,106)"Initial total energy         = ",tei*autoev," eV"
       write(6,106)"Initial temp                 = ",tempi," K"
+ 106  format(1x,a,f15.5,1x,a)
+ 107  format(1x,a,3f12.5,1x,a)
       write(6,*)
 
       if(nsurft.gt.1) then
       do i=1,nsurft
-        write(6,*)"Potential for surf ",i," = ",pem(i)*autoev," eV"
+      write(6,*)"Potential for surf ",i," = ",pem(i)*autoev," eV"
       enddo
       endif
       write(6,*)
-      ENDIF
-
- 106  format(1x,a,f15.5,1x,a)
- 107  format(1x,a,3f12.5,1x,a)
 
 c photoexcite
       if (tflag(3).eq.1) then
         egap = dabs(pem(ntarget)-pem(nsurf))
         if (dabs(egap-ephoton).lt.wphoton) then
 c         successful excitation
-          IF (my_rank.eq.0)
-     &      print *,"Exciting from state ",nsurf," to state ",ntarget,
+          write(6,*)"Exciting from state ",nsurf," to state ",ntarget,
      &               " with a photon energy of ",egap*autoev
           nsurf=ntarget
           pei = pem(nsurf)
           tei = kei + pei
           call initelec
         else
-          IF (my_rank.eq.0) THEN
-          print *,"Unsuccessful excitation"
-          print *,"Egap = ",egap*autoev," eV"
-          print *,"Photon energy = ",ephoton*autoev," +/- ",
+          write(6,*)"Unsuccessful excitation"
+          write(6,*)"Egap = ",egap*autoev," eV"
+          write(6,*)"Photon energy = ",ephoton*autoev," +/- ",
      &             wphoton*autoev," eV"
-          ENDIF  
           outcome = -2
           go to 999
         endif
@@ -221,26 +194,25 @@ c get trajectory index
       endif
 
 c write initial coordinates and momenta to output
-      IF (my_rank.eq.0) THEN
       if (lwrite(10)) then
-        open(10)
-        write(10,*)ithistraj,pei*autoev
-        do i=1,nat
-          write(10,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
-        enddo
+      write(10,*)ithistraj
+      write(10,*)1,pei*autoev
+      do i=1,nat
+c      write(10,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
+      write(10,1010)symbol(i),(xx(j,i)*autoang,j=1,3)
+      enddo
       endif
       if (lwrite(11)) then
-        open(11)
-        write(11,*)ithistraj,kei*autoev
-        do i=1,nat
-          write(11,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
-        enddo
+      write(11,*)ithistraj
+      write(11,*)1,kei*autoev
+      do i=1,nat
+c      write(11,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
+      write(11,1010)symbol(i),(pp(j,i),j=1,3)
+      enddo
       endif
-      ENDIF
 
  1010 format(5x,a2,4f20.8)
 
-      IF (my_rank.eq.0) THEN
 c trajectory output
       if (termflag.eq.2) then
       write(6,'(20a15)')"          step",
@@ -279,14 +251,10 @@ c trajectory output
      &                  "          Probs"
       endif
       endif
-      ENDIF
 
 c ######################################################################
 c INTEGRATE TRAJECTORY
 c ######################################################################
-#ifdef MPIFORCES
-      call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
       call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,  ! HACK
      &   phop,dmag,dvec,pem,gpem,phase)
       do 10 while (.true.)
@@ -322,7 +290,6 @@ c     converge gradient (TERMFLAG = 2)
         enddo
         enddo
         if (gvmag.le.t_gradmag**2) then
-          IF (my_rank.eq.0) THEN
           write(6,*)"Gradient converged to ",
      &               dsqrt(gvmag)*autoev/autoang,"eV/A"
           write(6,*)"At the geometry "
@@ -330,14 +297,11 @@ c     converge gradient (TERMFLAG = 2)
             write(*,1090)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
  1090       format(a2,f15.6,3f21.8)
           enddo
-          ENDIF
-
           tmp1=-1.d0
           tmp2=-1.d0
           call addrot(pp,xx,mm,nat,tmp1,tmp2,sampjbrot1,sampjbrot2,
      &       tmp3,tmp4,dum3)
 
-          IF (my_rank.eq.0) THEN
           if (lwrite(77)) then  ! special output file
             open(77,file="dint.geo") 
             write(77,*)pem(1)*autoev,
@@ -347,7 +311,6 @@ c     converge gradient (TERMFLAG = 2)
            write(77,1090)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
             enddo
           endif
-          ENDIF
 
           go to 999
         endif
@@ -362,18 +325,18 @@ c       find maximum and minimum bond distance corresponding to each outcome
         enddo
 
         do k=1,t_noutcome
-          if ((t_symb(k,1).eq.'cm'.and.
-     &         t_symb(k,2).eq.'cm')) then
+          if ( ( t_symb(k,1).eq.'cm'.and.
+     &      t_symb(k,2).eq.'cm'      ) ) then
             call getrel(rcom,ecom)
             rmin(k)=rcom
             rmax(k)=rcom
           endif
           do i1=1,nat
             do i2=i1+1,nat
-              if ((t_symb(k,1).eq.symbol(i1).and.
-     &             t_symb(k,2).eq.symbol(i2)).or.
-     &            (t_symb(k,1).eq.symbol(i2).and.
-     &             t_symb(k,2).eq.symbol(i1))) then
+              if ( ( t_symb(k,1).eq.symbol(i1).and.
+     &               t_symb(k,2).eq.symbol(i2)      ) .or.
+     &             ( t_symb(k,1).eq.symbol(i2).and.
+     &               t_symb(k,2).eq.symbol(i1)      ) ) then
                 rrr = 0.d0
                 do j=1,3
                   rrr = rrr + (xx(j,i1)-xx(j,i2))**2
@@ -415,7 +378,6 @@ c       monitor dissociation
             rtmp=rmax(k)
             if (t_symb(k,2).eq.'x') rtmp=rmin(k)
             if (rtmp.gt.t_r(k).and.t_r(k).gt.0.d0) then
-c           intercept FSTU trajectories that are still looking to unfrustrate
             if (lfrust) then
             else
               outcome = k
@@ -439,9 +401,9 @@ c Andersen thermostat
       if (lhit.and.scandth.gt.0.d0) then  
         call gettemp(pp,mm,nat,temp,ke)
         do i=1,nat
-          do j=1,3
-            pp(j,i)=pp(j,i)*dsqrt((scandth+pei-pe)/ke)
-          enddo
+        do j=1,3
+          pp(j,i)=pp(j,i)*dsqrt((scandth+pei-pe)/ke)
+        enddo
         enddo
         call gettemp(pp,mm,nat,temp,ke)
       endif
@@ -458,51 +420,47 @@ c      if (step*autofs.lt.1.d-2) then
 c         outcome=0
 c         go to 999
 c      endif
-      IF (my_rank.eq.0) THEN
-        if (lwrite(85)) write(85,*)
-        if (lwrite(85)) write(85,*)ithistraj,istep,time*autofs
-      ENDIF
+      if (lwrite(85)) write(85,*)
+      if (lwrite(85)) write(85,*)ithistraj,istep,time*autofs
 
 c transport
 c      rtmp=xx(1,1)**2+xx(2,1)**2+xx(3,1)**2
 c      rtmp=rtmp/6.d0
 c      rtrans=(rtrans*(time-step)+rtmp*step)/time
-c      if (mod(istep,1000).eq.0) print *,"D = ",rtrans/time
+c      if (mod(istep,1000).eq.0) write(6,*)"D = ",rtrans/time
 
 c ramp temperature
       if (tflag(1).eq.2) then
 c hard-coded parameters
-c     ramptime = 2.d4 ! in fs
-c     nramp = 10 ! number of ramping cycles
-c     rampfact = 1.02 ! increase temp by this factor each ramp
+c      ramptime = 2.d4 ! in fs
+c      nramp = 10 ! number of ramping cycles
+c      rampfact = 1.02 ! increase temp by this factor each ramp
       if (time > ramptime) then
-        call lindemann(xx,nat,step,time,arij,arij2,lind)
-        call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
-        iramp = iramp + 1
-        IF (my_rank.eq.0) THEN
-        if (lwrite(42)) call honey(ithistraj,xx,nat,time)
-        if (lwrite(40)) write(40,*)ithistraj,iramp,atemp/time,stemp,lind
-        ENDIF
- 1040   format(2i7,3f15.5)
-        if (iramp.eq.nramp) go to 999
-        do i=1,mnat
-          do j=1,mnat
-            arij(i,j) = 0.d0
-            arij2(i,j) = 0.d0
-          enddo
-        enddo
-        do i=0,nbinrad+1
-          raddist(i) = 0.d0
-        enddo
-        atemp = 0.d0
-        atemp2 = 0.d0
-        stemp = 0.d0
-        time = step
-        do i=1,nat
-          do j=1,3
-            pp(j,i)=pp(j,i)*rampfact
-          enddo
-        enddo
+      call lindemann(xx,nat,step,time,arij,arij2,lind)
+      call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
+      if (lwrite(42)) call honey(ithistraj,xx,nat,time)
+      iramp = iramp + 1
+      if (lwrite(40)) write(40,*)ithistraj,iramp,atemp/time,stemp,lind
+ 1040 format(2i7,3f15.5)
+      if (iramp.eq.nramp) go to 999
+      do i=1,mnat
+      do j=1,mnat
+        arij(i,j) = 0.d0
+        arij2(i,j) = 0.d0
+      enddo
+      enddo
+      do i=0,nbinrad+1
+        raddist(i) = 0.d0
+      enddo
+      atemp = 0.d0
+      atemp2 = 0.d0
+      stemp = 0.d0
+      time = step
+      do i=1,nat
+      do j=1,3
+        pp(j,i)=pp(j,i)*rampfact
+      enddo
+      enddo
       endif
       endif
 
@@ -516,36 +474,36 @@ c update info at new geometry
       call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,
      &   phop,dmag,dvec,pem,gpem,phase)
       if (lzflag) then
-        r10=r1
-        r20=r2
-        a1230=a123
-        r1=0.d0
-        r2=0.d0
-        r3=0.d0
-        do i=1,3
-          r1=r1+(xx(i,1)-xx(i,2))**2
-          r2=r2+(xx(i,3)-xx(i,2))**2
-          r3=r3+(xx(i,3)-xx(i,1))**2
-        enddo
-        a123=(r1+r2-r3)/dsqrt(4.d0*r1*r2)
-        r1=dsqrt(r1)*autoang
-        r2=dsqrt(r2)*autoang
-        a123=dacos(a123)/dacos(-1.d0)*180.d0
-        lastgap0 = lastgap  ! TEMP AJ
-        lastgap = pem(1)-pem(2)  ! TEMP AJ
-        vlz0=vlz
-        vlz=(pem(1)+pem(2))/2.d0
-        pairy0(1)=pairy(1)
-        pairy0(2)=pairy(2)
-        plz0=plz
-        elz0=elz
-        hlz0=hlz
-        vlz0=vlz
-        glz0=glz
-        call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
-        if (lastgap0*lastgap.lt.0.d0) then
-          ncross=ncross+1
-          if (ncross.eq.abs(tflag(4))) go to 999
+      r10=r1
+      r20=r2
+      a1230=a123
+      r1=0.d0
+      r2=0.d0
+      r3=0.d0
+      do i=1,3
+      r1=r1+(xx(i,1)-xx(i,2))**2
+      r2=r2+(xx(i,3)-xx(i,2))**2
+      r3=r3+(xx(i,3)-xx(i,1))**2
+      enddo
+      a123=(r1+r2-r3)/dsqrt(4.d0*r1*r2)
+      r1=dsqrt(r1)*autoang
+      r2=dsqrt(r2)*autoang
+      a123=dacos(a123)/dacos(-1.d0)*180.d0
+      lastgap0 = lastgap  ! TEMP AJ
+      lastgap = pem(1)-pem(2)  ! TEMP AJ
+      vlz0=vlz
+      vlz=(pem(1)+pem(2))/2.d0
+      pairy0(1)=pairy(1)
+      pairy0(2)=pairy(2)
+      plz0=plz
+      elz0=elz
+      hlz0=hlz
+      vlz0=vlz
+      glz0=glz
+      call getplz(pp,mm,gpem,nat,plz,elz,hlz,glz,pairy,nsurf)  ! TEMP AJ
+      if (lastgap0*lastgap.lt.0.d0) then
+      ncross=ncross+1
+      if (ncross.eq.abs(tflag(4))) go to 999
 c     crude interpolation
       r1x=(dabs(lastgap0)*r1+dabs(lastgap)*r10)
      &         /(dabs(lastgap)+dabs(lastgap0))
@@ -582,7 +540,7 @@ c     &  (taup(i)*autofs,i=1,3),
      &  plzx,elzx*autoev,hlzx*autocmi,glzx,
      &  vlzx*autoev,pairyx(1),pairyx(2)
 c     &  r1x,r2x,a123x,vlzx*autoev,pairyx(1),pairyx(2)
-c      write(6,*)"CROSS",plzx,pairyx,pairy,pairy0
+!      write(6,*)"CROSS",plzx,pairyx,pairy,pairy0
       lastcross=time
 c      ijk=1
       else
@@ -598,26 +556,25 @@ c      ijk=1
       endif
 
       call getrel(rcom,ecom)
-
+      
 c HACK
       do j=1,3
-        ppp(j)=0.d0
-        do i=1,natom(1)
-          ppp(j)=ppp(j)+pp(j,i)  ! com
-        enddo
+      ppp(j)=0.d0
+      do i=1,natom(1)
+      ppp(j)=ppp(j)+pp(j,i)  ! com
+      enddo
       enddo
       ppy=0.d0
       do i=1,natom(1)
-        ppy=ppy+mm(i)
+      ppy=ppy+mm(i)
       enddo
       ke=0.d0
       do i=1,natom(1)
       do j=1,3
-        ke = ke + 0.5d0*(pp(j,i)-ppp(j)*mm(i)/ppy)**2/mm(i)
+         ke = ke + 0.5d0*(pp(j,i)-ppp(j)*mm(i)/ppy)**2/mm(i)
       enddo
       enddo
 c HACK
-      IF (my_rank.eq.0) THEN
       if ( (mod(istep,nprint).eq.0.or.istep.eq.1) .and. lwrite(90) )
      &  write(90,'(i5,19f15.5)')ithistraj,time*autofs,
      &  tmpprint(2)*autoang,
@@ -626,7 +583,6 @@ c HACK
      &  tmpprint(11)*autocmi,
      &  ke*autocmi,(tmpprint(11)+ke)*autocmi
 c     &  ecom2*autocmi,(tmpprint(11)+ecom2)*autocmi
-      ENDIF
       if (tmpprint(1).lt.evdw) then
          evdw=tmpprint(1)
          rvdw=tmpprint(2)
@@ -634,16 +590,16 @@ c     &  ecom2*autocmi,(tmpprint(11)+ecom2)*autocmi
 
 c Stop at the first DMAG minimum
       if (termflag.eq.4) then
-        if( (dmag1-dmag2).lt.0.d0 .AND. (dmag-dmag1).gt.0.d0 ) go to 999
-        dmag2 = dmag1
-        dmag1 = dmag
+      if( (dmag1-dmag2).lt.0.d0 .AND. (dmag-dmag1).gt.0.d0 ) go to 999
+      dmag2 = dmag1
+      dmag1 = dmag
       endif
 
 c reinitialize CSDM
       if (methflag.eq.4) then
       if (istep.gt.2) then
-        if ((dmag1-dmag2).lt.0.d0 .AND. (dmag-dmag1).gt.0.d0) then
-          IF (my_rank.eq.0) write(6,*)"Electronic reinitialization!"
+        if( (dmag1-dmag2).lt.0.d0 .AND. (dmag-dmag1).gt.0.d0 ) then
+          write(6,*)"Electronic reinitialization!"
           do i=1,nsurft
             i2 = i + nsurft
             cre(i2)=cre(i)
@@ -727,7 +683,7 @@ c handle frustrated hop with FSTU
         if (tu_time(newsurf).ge.0.d0.and.deltback.lt.deltforw.and.
      &                                   deltback.le.tu_maxtime) then
 c         do a TU hop backward
-          IF (my_rank.eq.0) write(6,*)"BACKWARD HOP!"
+          write(6,*)"BACKWARD HOP!"
           do i=1,nat
           do j=1,3
             xx(j,i) = tu_xx(j,i,newsurf)
@@ -745,7 +701,7 @@ c         do a TU hop backward
           lhop = .true.
         else if (frusflag(newsurf).eq.0.and.deltforw.le.tu_maxtime) then
 c         do a TU hop forward
-          IF (my_rank.eq.0) write(6,*)"FORWARD HOP!"
+          write(6,*)"FORWARD HOP!"
           lhop = .true.
         else if (deltforw.gt.tu_maxtime) then
 c         do a frustrated hop at the original hopping location
@@ -767,9 +723,6 @@ c         do a frustrated hop at the original hopping location
         endif
         if (lhop) then
         lfrust = .false.
-#ifdef MPIFORCES
-        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
         call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,
      &   phop,dmag,dvec,pem,gpem,phase)
           do i=1,nsurft
@@ -800,12 +753,12 @@ c       switch surfaces or reflect/ignore frustrated hop
      &   phop,dmag,dvec,pem,gpem,phase)
 c AJAJAJAJ
 c Switch commented out parts to stop allowing TU hops up at the last hop down
-        do i=1,nat
-        do j=1,3
-          tu_pp(j,i,n1) = pp(j,i)
-          tu_pp(j,i,n2) = pp(j,i)
-        enddo
-        enddo
+            do i=1,nat
+            do j=1,3
+              tu_pp(j,i,n1) = pp(j,i)
+              tu_pp(j,i,n2) = pp(j,i)
+            enddo
+            enddo
 c        do i=1,nsurft
 c         reset all backward hops
 c          tu_time(i) = -1.d0
@@ -831,9 +784,6 @@ c SCDM and CSDM, check for a decoherence state switch
         call decocheck(phop,nsurf,lhop)
         if (lhop) then
         hstep=hstep0/5.d0
-#ifdef MPIFORCES
-        call MPI_BARRIER(MPI_COMM_WORLD, ierr)
-#endif
         call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,
      &    phop,dmag,dvec,pem,gpem,phase)
         endif
@@ -868,109 +818,101 @@ c on-the-fly analyses
       atemp2 = atemp2 + (temp**2)*step
       stemp = dsqrt(atemp2/time - (atemp/time)**2)
 
-      IF (my_rank.eq.0) THEN
       if (rhor(1,1).ge.0.2d0.and.rhor(1,1).le.0.8d0.and.lwrite(35)) then
-        write(35,1035)ithistraj,istep,time*autofs,step*autofs,
+      write(35,1035)ithistraj,istep,time*autofs,step*autofs,
      &     taup(1)*autofs,taup(2)*autofs,
      &     taup(3)*autofs,rhor(1,1),rhor(2,2)
       endif
-      ENDIF
  1035  format(2i8,10f15.5)
 
 c write info every nprint steps
       call getrho(cre,cim,rhor,rhoi,nsurft)
       if (mod(istep,nprint).eq.0.or.istep.eq.1) then
 c molden format
-        nistep = nistep + 1
-        IF (my_rank.eq.0) THEN
-        if (lwrite(81)) then
+       nistep = nistep + 1
+       if (lwrite(81)) then
           write(81,*)nat
           write(81,1081)istep,pe
           do i=1,nat
             write(81,1080)symbol(i),(pp(j,i),j=1,3)
           enddo
-        endif
-        if (lwrite(80)) then
+       endif
+       if (lwrite(80)) then
           write(80,*)nat
-          write(80,1081)istep,pe
+          write(80,1081)istep,pe,time*autofs
           do i=1,nat
             write(80,1080)symbol(i),(xx(j,i)*autoang,j=1,3)
- 1080       format(a2,3f15.5)
- 1081       format(i7,50f15.5)
+ 1080       format(a2,3E18.8)
+ 1081       format(i7,3E18.8)
           enddo
-        endif
-        if (lwrite(82)) write(82,REC=nistep)nat,istep,pe,
-     &    (symbol(i),i=1,nat),((xx(j,i)*autoang,j=1,3),i=1,nat)
-        if (lwrite(83)) write(83,REC=nistep)nat,istep,pe,
-     &    (symbol(i),i=1,nat),((pp(j,i),j=1,3),i=1,nat)
-        ENDIF
-        if (lwell.gt.0) then
-          call detwell(pe,xx,welli)
-          if (welli.eq.lwell) then
-            istepw=istepw+1
-            nistepw=nistepw+1
-            IF (my_rank.eq.0) THEN
-            if (lwrite(86)) then
-              write(86,*)nat
-              write(86,1081)istepw,pe
-              do i=1,nat
-                write(86,1080)symbol(i),(xx(j,i)*autoang,j=1,3)
-              enddo
-            endif
-            if (lwrite(87)) then
-              write(87,*)nat
-              write(87,1081)istepw,pe
-              do i=1,nat
-                write(87,1080)symbol(i),(pp(j,i),j=1,3)
-              enddo
-            endif
-            if (lwrite(88)) write(88,REC=nistepw)nat,istepw,pe,
-     &        (symbol(i),i=1,nat),((xx(j,i)*autoang,j=1,3),i=1,nat)
-            if (lwrite(89)) write(89,REC=nistepw)nat,istepw,pe,
-     &        (symbol(i),i=1,nat),((pp(j,i),j=1,3),i=1,nat)
-            ENDIF
-          else if (welli.eq.3) then 
-            IF (my_rank.eq.0) print *,"welli=",welli," not supported"
-          endif
-        endif ! lwell.gt.0
-        if (lwrite(42)) call honey(ithistraj,xx,nat,time)
-        IF (my_rank.eq.0) THEN
-        if (termflag.eq.2) then
+       endif
+       if (lwrite(82)) write(82,REC=nistep)nat,istep,pe,
+     &  (symbol(i),i=1,nat),((xx(j,i)*autoang,j=1,3),i=1,nat)
+       if (lwrite(83)) write(83,REC=nistep)nat,istep,pe,
+     &  (symbol(i),i=1,nat),((pp(j,i),j=1,3),i=1,nat)
+       if (lwell.gt.0) then
+         call detwell(pe,xx,welli)
+         if (welli.eq.lwell) then
+           istepw=istepw+1
+           nistepw=nistepw+1
+           if (lwrite(86)) then
+             write(86,*)nat
+             write(86,1081)istepw,pe
+             do i=1,nat
+               write(86,1080)symbol(i),(xx(j,i)*autoang,j=1,3)
+             enddo
+           endif
+           if (lwrite(87)) then
+             write(87,*)nat
+             write(87,1081)istepw,pe
+             do i=1,nat
+               write(87,1080)symbol(i),(pp(j,i),j=1,3)
+             enddo
+           endif
+           if (lwrite(88)) write(88,REC=nistepw)nat,istepw,pe,
+     &      (symbol(i),i=1,nat),((xx(j,i)*autoang,j=1,3),i=1,nat)
+           if (lwrite(89)) write(89,REC=nistepw)nat,istepw,pe,
+     &      (symbol(i),i=1,nat),((pp(j,i),j=1,3),i=1,nat)
+         else if (welli.eq.3) then 
+           write(6,*)"welli=",welli," not supported"
+         endif
+       endif
+       if (lwrite(42)) call honey(ithistraj,xx,nat,time)
+       if (termflag.eq.2) then
           if(nsurft.eq.1) then
             write(6,101)istep,time*autofs,pe*autoev,
-     &      dsqrt(gvmag)*autoev/autoang
+     &    dsqrt(gvmag)*autoev/autoang
           else
             write(6,101)istep,time*autofs,(pem(j)*autoev,j=1,nsurft),
-     &      dsqrt(gvmag)*autoev/autoang
+     &    dsqrt(gvmag)*autoev/autoang
           endif
+       else
+        if (nsurft.eq.1.and.lwell.eq.0) then
+c          write(6,101)istep,time*autofs,temp,
+c     &    ke*autoev,pe*autoev,te*autoev,
+c     &    lind,atemp/time,stemp
+          write(6,103)istep,time*autofs,temp,
+     &    ke*autoev,pe*autoev,te*autoev,
+     &    lind,atemp/time,stemp
+c     &    ,wellindex1,wellindex2,xwell
+        else if (nsurft.eq.1.and.lwell.gt.0) then
+          write(6,104)istep,istepw,time*autofs,temp,
+     &    ke*autoev,pe*autoev,te*autoev,
+     &    lind,atemp/time,stemp
         else
-          if (nsurft.eq.1.and.lwell.eq.0) then
-c            write(6,101)istep,time*autofs,temp,
-c     &      ke*autoev,pe*autoev,te*autoev,
-c     &      lind,atemp/time,stemp
-            write(6,103)istep,time*autofs,temp,
-     &      ke*autoev,pe*autoev,te*autoev,
-     &      lind,atemp/time,stemp
-c     &      ,wellindex1,wellindex2,xwell
-          else if (nsurft.eq.1.and.lwell.gt.0) then
-            write(6,104)istep,istepw,time*autofs,temp,
-     &      ke*autoev,pe*autoev,te*autoev,
-     &      lind,atemp/time,stemp
-          else
-c            write(6,101)istep,time*autofs,temp,
-c     &      ke*autoev,pe*autoev,te*autoev,
-c     &      (rhor(k,k),k=1,nsurft),pem(1)*autoev,pem(2)*autoev
+c          write(6,101)istep,time*autofs,temp,
+c     &    ke*autoev,pe*autoev,te*autoev,
+c     &    (rhor(k,k),k=1,nsurft),pem(1)*autoev,pem(2)*autoev
 c temp
-            write(6,102)istep,time*autofs,temp,
-     &      ke*autoev,pe*autoev,te*autoev,
-     &      (rhor(k,k),k=1,nsurft),(pem(k)*autoev,k=1,nsurft)
-     &      ,dmag,h12x*autocmi
-c     &      dmag,h12x*autocmi,h12y*autocmi
-c     &     ,wellindex1,wellindex2,xwell
-          endif ! nsurf.eq.1.and.lwell.eq.0
-        endif ! termflag.eq.2
-        ENDIF ! my_rank.eq.0
-        endif ! mod(istep,nprint)
+          write(6,102)istep,time*autofs,temp,
+     &    ke*autoev,pe*autoev,te*autoev,
+     &    (rhor(k,k),k=1,nsurft),(pem(k)*autoev,k=1,nsurft)
+     &     ,dmag,h12x*autocmi
+c     &     dmag,h12x*autocmi,h12y*autocmi
+c     &    ,wellindex1,wellindex2,xwell
+        endif
+       endif
+      endif
  101  format(i15,f15.3,20f21.9)
  102  format(i15,f15.3,100f15.5)
  103  format(i15,f15.3,7f15.5,2i5,f8.2)
@@ -984,18 +926,19 @@ c ######################################################################
 
  999  continue
 
-      IF (my_rank.eq.0) THEN
       if (lwrite(16)) 
-     &  write(16,'(2f13.5,2e18.5,3e18.5)')time*autofs,1.d4,
-     &  phop(1)*step,rhor(1,1),
-     &  (taup2(i)*autofs,i=1,3)
-      ENDIF
+     & write(16,'(2f13.5,2e18.5,3e18.5)')time*autofs,1.d4,
+     & phop(1)*step,rhor(1,1),
+     & (taup2(i)*autofs,i=1,3)
 
 c trajectory has ended
+      if (lwrite(96))
+     & write(96,1096)ithistraj,outcome,nbz2,2.d0*bqci/bmaxqc,
+     & tbz2*autofs,tbz0*autofs,tbzf*autofs
+ 1096  format(3i5,10f15.3)
 
 c write final coordinates and momenta to output
       IF (outcome.ge.0) THEN
-      IF (my_rank.eq.0) THEN
       if (termflag.eq.2) then
           write(6,101)istep,time*autofs,
      &    pe*autoev,dsqrt(gvmag)*autoev/autoang
@@ -1014,31 +957,27 @@ c write final coordinates and momenta to output
      &     (rhor(k,k),k=1,nsurft)
         endif
       endif
-      ENDIF
-
       if (lwrite(41)) then
-        call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
+      call radialdist(ithistraj,xx,nat,step,time,nbinrad,raddist,1)
       endif
       if (lwrite(42)) call honey(ithistraj,xx,nat,time)
-      ENDIF ! outcome.eq.0
+      ENDIF
 
-      IF (my_rank.eq.0) THEN
       if (lwrite(20)) then
-        write(20,*)ithistraj,pe*autoev
-        do i=1,nat
-          write(20,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
-        enddo
+      write(20,*)ithistraj,pe*autoev
+      do i=1,nat
+      write(20,1010)symbol(i),mm(i)/amutoau,(xx(j,i)*autoang,j=1,3)
+      enddo
       endif
 
       if (lwrite(21)) then
-        write(21,*)ithistraj,ke*autoev
-        do i=1,nat
-          write(21,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
-        enddo
+      write(21,*)ithistraj,ke*autoev
+      do i=1,nat
+      write(21,1010)symbol(i),mm(i)/amutoau,(pp(j,i),j=1,3)
+      enddo
       endif
 
       if (lwrite(91)) write(91,*)ithistraj,rvdw*autoang,evdw*autocmi
-      ENDIF
 
  1001 return
       end

@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratory     
+c  Argonne National Laboratories     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -28,6 +28,7 @@ c
 c  copyright  2020
 c  Donald G. Truhalar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
+
 
       subroutine getpem(xx,nclu,pema,pemd,gpema,gpemd,dvec,symb)
 
@@ -47,9 +48,6 @@ c     the same as NAT, but must be less than NAT
       implicit none
       include 'param.f'
       include 'c_sys.f'
-#ifdef MPIFORCES
-      include 'mpif.h'
-#endif
 
       integer i,j,k,l,i1,i2,j1,j2
 c TEMP AJ
@@ -84,31 +82,29 @@ c ######################################################################
 c     Single surface
 
       if (nsurft.ne.1) then
-        IF (my_rank.eq.0) THEN
-        write(6,*)"STOP in GETPEM"
-        write(6,*)"NSURFT = ",nsurft," is not allowed for POTFLAG = 0"
-        ENDIF
-        stop
+      write(6,*)"STOP in GETPEM"
+      write(6,*)"NSURFT = ",nsurft," is not allowed for POTFLAG = 0"
+      stop
       endif
 
       do i=1,nclu
-        x(i) = xx(1,i)
-        y(i) = xx(2,i)
-        z(i) = xx(3,i)
+      x(i) = xx(1,i)
+      y(i) = xx(2,i)
+      z(i) = xx(3,i)
       enddo
       call pot(x,y,z,v,dx,dy,dz,nclu,nclu)
       pema(1) = v
       pemd(1,1) = v
       do i=1,nclu
-        gpema(1,i,1)=dx(i)
-        gpema(2,i,1)=dy(i)
-        gpema(3,i,1)=dz(i)
-        gpemd(1,i,1,1)=dx(i)
-        gpemd(2,i,1,1)=dy(i)
-        gpemd(3,i,1,1)=dz(i)
-        dvec(1,i,1,1)=0.d0
-        dvec(2,i,1,1)=0.d0
-        dvec(3,i,1,1)=0.d0
+      gpema(1,i,1)=dx(i)
+      gpema(2,i,1)=dy(i)
+      gpema(3,i,1)=dz(i)
+      gpemd(1,i,1,1)=dx(i)
+      gpemd(2,i,1,1)=dy(i)
+      gpemd(3,i,1,1)=dz(i)
+      dvec(1,i,1,1)=0.d0
+      dvec(2,i,1,1)=0.d0
+      dvec(3,i,1,1)=0.d0
       enddo
 
 c ######################################################################
@@ -118,31 +114,29 @@ c ######################################################################
 c     Single surface
 
       if (nsurft.ne.1) then
-        IF (my_rank.eq.0) THEN
-        write(6,*)"STOP in GETPEM"
-        write(6,*)"NSURFT = ",nsurft," is not allowed for POTFLAG = 2"
-        ENDIF
-        stop
+      write(6,*)"STOP in GETPEM"
+      write(6,*)"NSURFT = ",nsurft," is not allowed for POTFLAG = 2"
+      stop
       endif
 
       do i=1,nclu
-        x(i) = xx(1,i)
-        y(i) = xx(2,i)
-        z(i) = xx(3,i)
+      x(i) = xx(1,i)
+      y(i) = xx(2,i)
+      z(i) = xx(3,i)
       enddo
       call pot(symb,x,y,z,v,dx,dy,dz,nclu,mnat)
       pema(1) = v
       pemd(1,1) = v
       do i=1,nclu
-        gpema(1,i,1)=dx(i)
-        gpema(2,i,1)=dy(i)
-        gpema(3,i,1)=dz(i)
-        gpemd(1,i,1,1)=dx(i)
-        gpemd(2,i,1,1)=dy(i)
-        gpemd(3,i,1,1)=dz(i)
-        dvec(1,i,1,1)=0.d0
-        dvec(2,i,1,1)=0.d0
-        dvec(3,i,1,1)=0.d0
+      gpema(1,i,1)=dx(i)
+      gpema(2,i,1)=dy(i)
+      gpema(3,i,1)=dz(i)
+      gpemd(1,i,1,1)=dx(i)
+      gpemd(2,i,1,1)=dy(i)
+      gpemd(3,i,1,1)=dz(i)
+      dvec(1,i,1,1)=0.d0
+      dvec(2,i,1,1)=0.d0
+      dvec(3,i,1,1)=0.d0
       enddo
 
 c ######################################################################
@@ -152,19 +146,15 @@ c ######################################################################
 c     Triatomic, two-surface interface
 
       if (nclu.ne.3) then
-        IF (my_rank.eq.0) THEN
-        write(6,*)"STOP in GETPEM"
-        write(6,*)"NAT = ",nclu," is not allowed for POTFLAG = 1"
-        ENDIF
-        stop
+      write(6,*)"STOP in GETPEM"
+      write(6,*)"NAT = ",nclu," is not allowed for POTFLAG = 1"
+      stop
       endif
 
       if (nsurft.ne.2) then
-        IF (my_rank.eq.0) THEN
-        write(6,*)"STOP in GETPEM"
-        write(6,*)"NSURFT = ",nsurft," is not allowed for POTFLAG = 1"
-        ENDIF
-        stop
+      write(6,*)"STOP in GETPEM"
+      write(6,*)"NSURFT = ",nsurft," is not allowed for POTFLAG = 1"
+      stop
       endif
 
 c     r(1) = A-B
@@ -174,9 +164,9 @@ c     im = 1 = AB+C
 c     im = 2 = BC+A
 c     im = 3 = CA+B
 c     transform to internals
-      r(1)=0.d0
-      r(2)=0.d0
-      r(3)=0.d0
+        r(1)=0.d0
+        r(2)=0.d0
+        r(3)=0.d0
       do i=1,3
         r(1) = r(1) + (xx(i,1)-xx(i,2))**2
         r(2) = r(2) + (xx(i,2)-xx(i,3))**2
@@ -289,9 +279,9 @@ c     HE-MM-1 interface with multiple diabatic surfaces
 c ######################################################################
 
       do i=1,nclu
-        x(i) = xx(1,i)
-        y(i) = xx(2,i)
-        z(i) = xx(3,i)
+      x(i) = xx(1,i)
+      y(i) = xx(2,i)
+      z(i) = xx(3,i)
       enddo
 
       call pot(symb,x,y,z,pemd,gpemd,nclu,mnat,nsurft,mnsurf)
@@ -329,14 +319,14 @@ c     phase convention (this part depends on how DLAEV2 works)
         cc22(2,2) = cs1
       endif
 
-c      print *,"a",cc(1,1),cc(1,2),cc(2,1),cc(2,2)
+c      write(6,*)"a",cc(1,1),cc(1,2),cc(2,1),cc(2,2)
       rad = dsqrt(0.25d0*(u11-u22)**2+u12**2)
       v1 = 0.5d0*(u11+u22)-rad
       v2 = 0.5d0*(u11+u22)+rad
 
-c      print *,"u",u11*autoev,u22*autoev
-c      print *,"v",v1*autoev,v2*autoev
-c      print *,"v",pema(1)*autoev,pema(2)*autoev
+c      write(6,*)"u",u11*autoev,u22*autoev
+c      write(6,*)"v",v1*autoev,v2*autoev
+c      write(6,*)"v",pema(1)*autoev,pema(2)*autoev
       v1 = 0.d0
       v2 = 0.d0
       do i=1,nsurft
@@ -345,19 +335,19 @@ c      print *,"v",pema(1)*autoev,pema(2)*autoev
        v2 = v2 + cc(i,2)*pemd(i,j)*cc(j,2)
       enddo
       enddo
-c      print *,"vv",v1*autoev,v2*autoev
+c      write(6,*)"vv",v1*autoev,v2*autoev
 
 c     gradients of adiabatic surfaces v1 and v2
       do j1 = 1, 3
       do j2 = 1, nclu
-        gtmp(j1,j2) = 0.5d0*(gpemd(j1,j2,1,1)+gpemd(j1,j2,2,2))
-     &       - 0.5d0*(0.5d0*(gpemd(j1,j2,1,1)-gpemd(j1,j2,2,2))
-     *       *(pemd(1,1)-pemd(2,2))
-     &       +2.d0*gpemd(j1,j2,1,2)*pemd(1,2))/rad
-        gtmp2(j1,j2) = cc(1,1)**2*gpemd(j1,j2,1,1)
+         gtmp(j1,j2) = 0.5d0*(gpemd(j1,j2,1,1)+gpemd(j1,j2,2,2))
+     &    - 0.5d0*(0.5d0*(gpemd(j1,j2,1,1)-gpemd(j1,j2,2,2))
+     *     *(pemd(1,1)-pemd(2,2))
+     &     +2.d0*gpemd(j1,j2,1,2)*pemd(1,2))/rad
+       gtmp2(j1,j2) = cc(1,1)**2*gpemd(j1,j2,1,1)
      &         +cc(1,1)*cc(2,1)*gpemd(j1,j2,1,2)
-     &         +cc(1,1)*cc(2,1)*gpemd(j1,j2,1,2)
-     &         +cc(2,1)**2*gpemd(j1,j2,2,2)
+     &    +cc(1,1)*cc(2,1)*gpemd(j1,j2,1,2)
+     &    +cc(2,1)**2*gpemd(j1,j2,2,2)
       enddo
       enddo
 
@@ -367,7 +357,7 @@ c HACK HACK
       do j1 = 1, 3
       do j2 = 1, nclu
       do i = 1, nsurft
-        gpema(j1,j2,i)=0.d0
+         gpema(j1,j2,i)=0.d0
         do k = 1, nsurft
           do l = 1, nsurft
             gpema(j1,j2,i)=gpema(j1,j2,i)
@@ -418,9 +408,9 @@ c     HE-MM-1 interface with multiple adiabatic surfaces
 c ######################################################################
 
       do i=1,nclu
-        x(i) = xx(1,i)
-        y(i) = xx(2,i)
-        z(i) = xx(3,i)
+      x(i) = xx(1,i)
+      y(i) = xx(2,i)
+      z(i) = xx(3,i)
       enddo
 
       call pot(symb,x,y,z,pema,gpema,dvec,nclu,mnat,nsurft,mnsurf)
@@ -439,16 +429,15 @@ c     set diabatic energies to zero. these shouldn't be used
 
 c ######################################################################
       else
-        IF (my_rank.eq.0)
-     &  write(6,*)"Cant have POTFLAG = ",potflag," in GETPEM"
-        stop
+      write(6,*)"Cant have POTFLAG = ",potflag," in GETPEM"
+      stop
       endif
 c ######################################################################
 
 c     ADJUST ZERO OF ENERGY
       do i=1,nsurft
-        pema(i)=pema(i)-ezero
-        pemd(i,i)=pemd(i,i)-ezero
+      pema(i)=pema(i)-ezero
+      pemd(i,i)=pemd(i,i)-ezero
       enddo
 
       return
