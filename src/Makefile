@@ -2,11 +2,12 @@
 
 #set POT here or use 'gmake POT=potname'
 
-POT=dd
+#POT=dd
 #POT=h2oM
 #POT=ch4hALL
 #POT=ch4ohALL
 #POT=ethylene
+POT=tbplusexp6-2
 
 EXEDIR = ../exe
 TARG = $(EXEDIR)/dint2-$(POT).x$(EXESUFFIX)

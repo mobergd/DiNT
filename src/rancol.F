@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
 
@@ -57,8 +57,8 @@ c local
       ia = 2
       x=1.d0
       do i=1,ia
-         r=sprng(rng_stream)
-         x=x*r
+        r=sprng(rng_stream)
+        x=x*r
       enddo
       x=-dlog(x)
 

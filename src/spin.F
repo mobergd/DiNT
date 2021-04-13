@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
       subroutine spin(xxm,ppm,nclu)

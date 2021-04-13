@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
       subroutine readin
@@ -759,7 +759,7 @@ c       fixed simulation time
       elseif (termflag.eq.2) then
 c       converge gradient
         read(5,*)t_gradmag
-        write(6,*)"TERMFALG = 2:  Trajectories will terminate ",
+        write(6,*)"TERMFLAG = 2:  Trajectories will terminate ",
      &  "when the magnitude of the gradient"
         write(6,*)"               is less than ",
      &  t_gradmag," eV/A"

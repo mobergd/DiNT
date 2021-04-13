@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
 
@@ -47,7 +47,7 @@ c my_ntraj   The end # of the trajectory of this processor
 c nproc      Total number of prcoessor
 c job_path   The absolute path of the folder you submit the job. This wll be got from pwd()
 c work_path  The current working path for each processor. If DINT_TMP_DIR is defined, 
-c            work_path equals to $DINT_TMP_DIR plus a processor number
+c            work_path is $DINT_TMP_DIR plus a processor number
 c            e.g if DINT_TMP_DIR="/home/work", then for rank 1 processor,
 c            there will be work_path="/home/work/001". If DINT_TMP_DIR is not defined,
 c            work_path will be a created folder named by the rank number under the job_path.

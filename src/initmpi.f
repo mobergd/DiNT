@@ -26,81 +26,81 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
       
       subroutine initmpi
         
-        implicit none
-        include 'param.f'
-        include 'c_sys.f'
-        include 'mpif.h'
+      implicit none
+      include 'param.f'
+      include 'c_sys.f'
+      include 'mpif.h'
 
-        integer err_code
-        character(len=3) :: my_rank_str
-        character(len=10):: ldeltmp_str
-        character(len=255)::tmp_path
+      integer err_code
+      character(len=3) :: my_rank_str
+      character(len=10):: ldeltmp_str
+      character(len=255)::tmp_path
 
 
 c     initialize mpi
-        call MPI_Init( err_code )
-        call MPI_COMM_RANK ( MPI_COMM_WORLD, my_rank, err_code )
-        call MPI_COMM_SIZE ( MPI_COMM_WORLD, nproc,   err_code )
-        write(my_rank_str,'(i0.3)') my_rank
+      call MPI_Init( err_code )
+      call MPI_COMM_RANK ( MPI_COMM_WORLD, my_rank, err_code )
+      call MPI_COMM_SIZE ( MPI_COMM_WORLD, nproc,   err_code )
+      write(my_rank_str,'(i0.3)') my_rank
 
 c     get the job_path
-        call getcwd(job_path)
+      call getcwd(job_path)
 
 c     read tmp_path through DINT_TMP_DIR
-        call getenv('DINT_TMP_DIR', tmp_path)
-        if (tmp_path.eq.'') then
-          ltmpdir = .false.
-        else
-          ltmpdir = .true.
-        endif
+      call getenv('DINT_TMP_DIR', tmp_path)
+      if (tmp_path.eq.'') then
+        ltmpdir = .false.
+      else
+        ltmpdir = .true.
+      endif
 
 c     read ldeltmp through DINT_DELETE_DIR
-        call getenv('DINT_DELETE_TMP', ldeltmp_str)
-        if (trim(ldeltmp_str).eq.'yes') then
-          ldeltmp = .true.
-        else
-          ldeltmp = .false.
-        endif
+      call getenv('DINT_DELETE_TMP', ldeltmp_str)
+      if (trim(ldeltmp_str).eq.'yes') then
+        ldeltmp = .true.
+      else
+        ldeltmp = .false.
+      endif
 
-c     create work_path up to if DINT_TMP_DIR is set
-        if (ltmpdir) then 
-          call system( "mkdir "//trim(tmp_path)//" &> /dev/null" )
-          work_path = trim(tmp_path)//"/"//my_rank_str 
-          call system( "mkdir "//trim(work_path)//" &> /dev/null" )
-        else
-          work_path = trim(job_path)//"/"//my_rank_str 
-          call system( "mkdir "//trim(work_path)//" &> /dev/null" )
-        endif 
+c     create work_path if DINT_TMP_DIR is set
+      if (ltmpdir) then 
+        call system("mkdir "//trim(tmp_path)//" &> /dev/null")
+        work_path = trim(tmp_path)//"/"//my_rank_str 
+        call system("mkdir "//trim(work_path)//" &> /dev/null")
+      else
+        work_path = trim(job_path)//"/"//my_rank_str 
+        call system("mkdir "//trim(work_path)//" &> /dev/null")
+      endif 
 
 c     copy all files under job_path into work_path
-        call system( "cp "//trim(job_path)//"/* "//trim(work_path)
+      call system( "cp "//trim(job_path)//"/* "//trim(work_path)
      &//" &> /dev/null" )
 
 c     change direction to work folder
-        call chdir(work_path)
-        call getcwd(tmp_path)
-        if(trim(tmp_path).eq.trim(job_path)) then ! wrongly create folder, exit
-          if (my_rank.eq.0) then
-            write(*,*)
-            write(*,*) "Wrong of enviroment variable $DINT_TMP_DIR."
-            write(*,*) "E.g. if you set DINT_TMP_DIR=/home/work/tmp,"
-            write(*,*) "make sure that upper folder /home/work exists."
-            write(*,*)
-          endif
-          call MPI_Barrier(MPI_COMM_WORLD, err_code)
-          stop
+      call chdir(work_path)
+      call getcwd(tmp_path)
+      if(trim(tmp_path).eq.trim(job_path)) then ! incorrectly create folder, exit
+        if (my_rank.eq.0) then
+          write(*,*)
+          write(*,*) "Wrong enviroment variable $DINT_TMP_DIR."
+          write(*,*) "E.g. if you set DINT_TMP_DIR=/home/work/tmp,"
+          write(*,*) "make sure that upper folder /home/work exists."
+          write(*,*)
         endif
+        call MPI_Barrier(MPI_COMM_WORLD, err_code)
+        stop
+      endif
 
 c     open input file
-        open(5,FILE='input',ACTION='read')
+      open(5,FILE='input',ACTION='read')
 
 c     open output file in path
-        open(6,FILE='output',ACTION='write')  
+      open(6,FILE='output',ACTION='write')  
 
       end

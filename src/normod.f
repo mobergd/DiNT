@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
 
@@ -122,7 +122,7 @@ c       diabatic
       write(6,*)
 
       IF (lreadhess) THEN
-c     read in Hessin from fort.70
+c     read in Hessian from fort.70
       write(6,*)"Reading Hessian from unit 70"
       open(70)
       do i=1,3

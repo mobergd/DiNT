@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
 
@@ -50,6 +50,7 @@ c     MPI version of Dint modified by Rui Ming Zhang
 
       integer im,initrng,minitrng,i,ia, n_tmp
       double precision t1,t2,t3,cputime,t3old,r
+      logical dd_check
 
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     INITIALIZE DINT2.0
@@ -67,9 +68,12 @@ c     print header
 c     prepare the pot.
 c     do nothing for analytical PES
 c     read qc.txt for dd
-      write(6, '("... entering PREOPT ... ",/)')
-      call prepot
-      write(6, '("... exiting PREOPT ... ",/)')
+      dd_check=.false.
+      if (dd_check) then
+        write(6, '("... entering DD_PREPOT ... ",/)')
+        call dd_prepot
+        write(6, '("... exiting DD_PREPOT ... ",/)')
+      endif
 
 c     prepare each molecule
 c     compute quantities that are the same for all trajectories
