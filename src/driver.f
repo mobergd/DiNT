@@ -255,8 +255,8 @@ c trajectory output
 c ######################################################################
 c INTEGRATE TRAJECTORY
 c ######################################################################
-      call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,  ! HACK
-     &   phop,dmag,dvec,pem,gpem,phase)
+!      call getgrad(xx,pp,nsurf,pe,cre,cim,gv,gcre,gcim,nat,  ! HACK
+!     &   phop,dmag,dvec,pem,gpem,phase)
       do 10 while (.true.)
       istep = istep + 1      
 

@@ -73,6 +73,8 @@ c      write(6,*)"Using a user-designed interface"
       endif
       write(6,*)
 
+      call prepot
+
 c LDOFRAG
       ldofrag = .true.
       ldofrag = .false.
@@ -124,19 +126,14 @@ c initial surface, number of coupled surfaces, and electronic representation fla
       stop
       endif
       if (nsurf0.gt.nsurft) then
-      write(6,*)"Initial surface greater than total number!"
-      stop
+        write(6,*)"Initial surface greater than total number!"
+        stop
       endif
       if (nsurft.gt.mnsurf) then
-      write(6,*)"Number of surfaces > MNSURF in PARAMS"
-      stop
+        write(6,*)"Number of surfaces > MNSURF in PARAMS"
+        stop
       endif
-
-      do i=1,nsurft*2  ! why is this here? This should be in INITMOL
-      cre(i) = 0.d0
-      cim(i) = 0.d0
-      enddo
-      cre(nsurf0) = 1.d0
+      write(6,*)
 
 c read integration parameters
       write(6,*)"Integrator information"

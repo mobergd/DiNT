@@ -38,7 +38,7 @@ c-------------------------------------------------------------------------------
       include 'mpif.h'
 
       integer err_code
-      character(len=3) :: my_rank_str
+      character(len=55555) :: my_rank_str
       character(len=10):: ldeltmp_str
       character(len=255)::tmp_path
 

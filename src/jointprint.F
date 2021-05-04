@@ -55,7 +55,7 @@ ccccccccccccccccccccccccccccccccccccccccccc
 
 c       loop over all folders
         do rank=0,nproc-1
-c         set processor-specific paramters     
+c         set processor-specific parameters
           write(rank_str,'(i0.3)') rank
           filep = trim(job_path)//'/'//rank_str//'/output'
 
@@ -95,14 +95,15 @@ c             print ranks' corresponding trajectories number
      &folder after calculation: No "/)')
                 endif
               endif
-!              write(fwrite,'(A)') trim(line)
+!              write(fwrite,'(A)') trim(line) ! DM TEMP -> change to
+!              option to print out
             endif
             read(fread, '(A)', iostat=io) line
           enddo
 
 c         the same print for all ranks
           do while(io.eq.0)
-!            write(fwrite,'(A)') trim(line)
+!            write(fwrite,'(A)') trim(line) ! DM TEMP
             read(fread,'(A)',iostat=io) line
           enddo
 
@@ -162,10 +163,10 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then  
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )
+            open(fread, FILE = filep, ACTION = 'read')
 c           hederstr
             do i=0,1
-              read( fread, '(A)', iostat = io) line
+              read(fread, '(A)', iostat = io) line
               if (rank.eq.0) then
                 if (io.ne.0) then
                   write( fwrite, * ) "Wrong when reading file ",filep
@@ -199,10 +200,10 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then            
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           hederstr
             do i=0,1
-              read( fread, '(A)', iostat = io) line
+              read(fread, '(A)', iostat = io) line
               if (rank.eq.0) then
                 if (io.ne.0) then
                   write( fwrite, * ) "Wrong when reading file ",filep
@@ -236,10 +237,10 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then          
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           hederstr
             do i=0,1
-              read( fread, '(A)', iostat = io) line
+              read(fread, '(A)', iostat = io) line
               if (rank.eq.0) then
                 if (io.ne.0) then
                   write( fwrite, * ) "Wrong when reading file ",filep
@@ -273,7 +274,7 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then          
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           the same print for all ranks
             read(fread,'(A)',iostat=io) longline
             do while(io.eq.0)
@@ -299,7 +300,7 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then          
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )
+            open(fread, FILE = filep, ACTION = 'read')
 c           the same print for all ranks
             read(fread,'(A)',iostat=io) longline
             do while(io.eq.0)
@@ -324,7 +325,7 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then  
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           the same print for all ranks
             read(fread,'(A)',iostat=io) line
             do while(io.eq.0)
@@ -349,7 +350,7 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then  
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           the same print for all ranks
             do while(io.eq.0)
               read(fread,'(A)',iostat=io) line
@@ -373,7 +374,7 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then  
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           the same print for all ranks
             read(fread,'(A)',iostat=io) line
             do while(io.eq.0)
@@ -398,7 +399,7 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then  
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           the same print for all ranks
             read(fread,'(A)',iostat=io) line
             do while(io.eq.0)
@@ -424,10 +425,10 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then  
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           hederstr
             do i=0,1
-              read( fread, '(A)', iostat = io) line
+              read(fread, '(A)', iostat = io) line
               if (rank.eq.0) then
                 if (io.ne.0) then
                   write( fwrite, * ) "Wrong when reading file ",filep
@@ -462,10 +463,10 @@ c         set processor-specific paramters
           inquire(file=filep, exist=existcode)
           if (existcode) then  
 c           open filep
-            open( fread, FILE = filep, ACTION = 'read' )      
+            open(fread, FILE = filep, ACTION = 'read')
 c           hederstr
             do i=0,1
-              read( fread, '(A)', iostat = io) line
+              read(fread, '(A)', iostat = io) line
               if (rank.eq.0) then
                 if (io.ne.0) then
                   write( fwrite, * ) "Wrong when reading file ",filep

@@ -58,6 +58,8 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     init MPI
       call initmpi
 
+      t3=MPI_WTIME()
+
 c     print header
       call header
 
@@ -78,14 +80,16 @@ c     read qc.txt for dd
 c     prepare each molecule
 c     compute quantities that are the same for all trajectories
 c     initialize electronic coordinates
-      call timing(t1)
+!      call timing(t1)
+      t1=MPI_WTIME()
       write(6,'("...entering PREMOL...",/)')
       call initelec
       do im = 1 , nmol
       call premol(im)
       enddo
       write(6,'("...exiting PREMOL...",/)')
-      call timing(t2)
+!      call timing(t2)
+      t2=MPI_WTIME()
       write(6,'(" CPU time in PREMOL is ",f10.5," s",/)')(t2-t1)
 
 c     assign trajectories for each processor
@@ -98,7 +102,7 @@ c     assign trajectories for each processor
       my_itraj = my_rank * n_tmp + 1
       my_ntraj = min( ntraj, ( my_rank + 1 ) * n_tmp )
       
-      t3 = 0.d0
+!      t3 = 0.d0
       cputime = 0.d0
 
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -151,7 +155,8 @@ c     propagate this trajectory
       call driver
       write(6,'("...exiting DRIVER...",/)')
       t3old = t3
-      call timing(t3)
+!      call timing(t3)
+      t3=MPI_WTIME()
       cputime = cputime + (t3-t3old)
       write(6,'(" CPU time for this trajectory is ",f10.5," s",/)')
      & (t3-t3old)
