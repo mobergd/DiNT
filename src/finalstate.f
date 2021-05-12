@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratories     
+c  Argonne National Laboratory     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
       
@@ -257,17 +257,17 @@ c     we hit the max steps before we dissociated
         else
           if(t_symb(outcome,1).eq."cm".and.
      &       t_symb(outcome,2).eq."cm") then
-          ifrag=1
-          if (i.gt.natom(1)) ifrag=2
+            ifrag=1
+            if (i.gt.natom(1)) ifrag=2
           else
-          rr1 = 0.d0               ! for dissociated fragments, assign atoms to group based on shortest distance to atoms in broken bond
-          rr2 = 0.d0
-          do j=1,3
-            rr1 = rr1 + (xx(j,i)-xx(j,aind(outcome,1)))**2
-            rr2 = rr2 + (xx(j,i)-xx(j,aind(outcome,2)))**2
-          enddo
-          ifrag = 1
-          if (rr2.lt.rr1) ifrag = 2
+            rr1 = 0.d0               ! for dissociated fragments, assign atoms to group based on shortest distance to atoms in broken bond
+            rr2 = 0.d0
+            do j=1,3
+              rr1 = rr1 + (xx(j,i)-xx(j,aind(outcome,1)))**2
+              rr2 = rr2 + (xx(j,i)-xx(j,aind(outcome,2)))**2
+            enddo
+            ifrag = 1
+            if (rr2.lt.rr1) ifrag = 2
           endif
         endif
 c H2O+2AR HACK TEMP AJ

@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratories     
+c  Argonne National Laboratory     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
 
@@ -80,22 +80,22 @@ C ************* IORIENT = 1 ****************
 C ******************************************
         if (im.eq.1) then
           if (tempqc.gt.0.d0) then
-c         random thermal dist for erelqc
-          write(6,*)"Sampling from a thermal distribution at T = ",
-     &    tempqc," K"
-          call rancol(tempqc,erelqc)         
-          tempqc2=tempqc
-c          erelqc=erelqc+57.d0/627.509d0
+c           random thermal dist for erelqc
+            write(6,*)"Sampling from a thermal distribution at T = ",
+     &      tempqc," K"
+            call rancol(tempqc,erelqc)         
+            tempqc2=tempqc
+c            erelqc=erelqc+57.d0/627.509d0
           elseif (tempqc.eq.0.d0) then
-c         use random sampled temp from AG 1
-          tempqc2=sampjtemp(1)
-          write(6,*)"Sampling from a thermal distribution at T = ",
-     &    tempqc2," K"
-          call rancol(tempqc2,erelqc)         
+c           use random sampled temp from AG 1
+            tempqc2=sampjtemp(1)
+            write(6,*)"Sampling from a thermal distribution at T = ",
+     &      tempqc2," K"
+            call rancol(tempqc2,erelqc)         
           else
-c         constant relative energy
-          erelqc=dabs(tempqc)
-c          call no2arbeam(erelqc)
+c           constant relative energy
+            erelqc=dabs(tempqc)
+c            call no2arbeam(erelqc)
           endif
 c         compute relative reduced mass
           murel=mmag(1)*mmag(2)/(mmag(1)+mmag(2))
@@ -106,17 +106,17 @@ c         compute relative reduced mass
           compp(1,1)=0.d0
           compp(2,1)=0.d0
           compp(3,1)=-prel
-      write(6,100)"Setting initial CoM momenta for this AG     to ",
+          write(6,100)"Setting initial CoM momenta for this AG     to ",
      &             (compp(i,im),i=1,3)," au"
-      write(6,100)"Setting initial CoM coordinates for this AG to ",
+          write(6,100)"Setting initial CoM coordinates for this AG to ",
      &             (comxx(i,im)*autoang,i=1,3)," A"
-      write(6,*)
-      do i=1,natom(im)
-        do k=1,3
-        ppm(k,i)=ppm(k,i)+compp(k,im)*mmm(i)/mmag(im)
-        xxm(k,i)=xxm(k,i)+comxx(k,im)
-        enddo
-      enddo
+          write(6,*)
+          do i=1,natom(im)
+            do k=1,3
+            ppm(k,i)=ppm(k,i)+compp(k,im)*mmm(i)/mmag(im)
+            xxm(k,i)=xxm(k,i)+comxx(k,im)
+            enddo
+          enddo
         elseif (im.eq.2) then
 c         compute relative reduced mass
           murel=mmag(1)*mmag(2)/(mmag(1)+mmag(2))

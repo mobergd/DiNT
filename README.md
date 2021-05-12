@@ -20,7 +20,11 @@ DiNT - version 2.0 can be run at fixed energy or for thermal ensembles.
 ## Preferred citations for this code
  1. A. W. Jasper, C. M. Oana, and D. G. Truhlar, DiNT, July 2013.
  2. A. W. Jasper and D. G. Truhlar, "Non-Born–Oppenheimer molecular dynamics for conical intersections, avoided crossings, and weak interactions," in Conical Intersections: Theory, Computation, and Experiment, edited by W. Domcke, D. R. Yarkony, and H. Koppel (World Scientific, 2011), pp. 375-412 (chp. 10) or Adv. Ser. Phys. Chem. 17, 375-412 (2011).
-    
+  
+## SPRNG
+SPRNG: The Scalable Library for Pseudorandom Number Generation is available from the website [sprng.org](sprng.org).
+Included in the directory sprng/ is version 1.0. Newer versions are available to download from the website above.
+  
 ## Install
   ```console
   user@login:$ cd src/

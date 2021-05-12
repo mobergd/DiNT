@@ -15,7 +15,7 @@ c
 c  version 2.0                                    
 c
 c  A. W. Jasper                  
-c  Argonne National Laboratories     
+c  Argonne National Laboratory     
 c
 c  Rui Ming Zhang                 
 c  Tsinghua University
@@ -26,7 +26,7 @@ c  D. G. Truhlar
 c  University of Minnesota
 c
 c  copyright  2020
-c  Donald G. Truhalar and Regents of the University of Minnesota 
+c  Donald G. Truhlar and Regents of the University of Minnesota 
 c----------------------------------------------------------------------------------------------
 
 
@@ -50,12 +50,15 @@ c     MPI version of Dint modified by Rui Ming Zhang
 
       integer im,initrng,minitrng,i,ia, n_tmp
       double precision t1,t2,t3,cputime,t3old,r
+      logical dd_check
 
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     INITIALIZE DINT2.0
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 c     init MPI
       call initmpi
+
+      t3=MPI_WTIME()
 
 c     print header
       call header
@@ -67,21 +70,26 @@ c     print header
 c     prepare the pot.
 c     do nothing for analytical PES
 c     read qc.txt for dd
-      write(6, '("... entering PREOPT ... ",/)')
-      call prepot
-      write(6, '("... exiting PREOPT ... ",/)')
+      dd_check=.false.
+      if (dd_check) then
+        write(6, '("... entering DD_PREPOT ... ",/)')
+        call dd_prepot
+        write(6, '("... exiting DD_PREPOT ... ",/)')
+      endif
 
 c     prepare each molecule
 c     compute quantities that are the same for all trajectories
 c     initialize electronic coordinates
-      call timing(t1)
+!      call timing(t1)
+      t1=MPI_WTIME()
       write(6,'("...entering PREMOL...",/)')
       call initelec
       do im = 1 , nmol
       call premol(im)
       enddo
       write(6,'("...exiting PREMOL...",/)')
-      call timing(t2)
+!      call timing(t2)
+      t2=MPI_WTIME()
       write(6,'(" CPU time in PREMOL is ",f10.5," s",/)')(t2-t1)
 
 c     assign trajectories for each processor
@@ -94,7 +102,7 @@ c     assign trajectories for each processor
       my_itraj = my_rank * n_tmp + 1
       my_ntraj = min( ntraj, ( my_rank + 1 ) * n_tmp )
       
-      t3 = 0.d0
+!      t3 = 0.d0
       cputime = 0.d0
 
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -147,7 +155,8 @@ c     propagate this trajectory
       call driver
       write(6,'("...exiting DRIVER...",/)')
       t3old = t3
-      call timing(t3)
+!      call timing(t3)
+      t3=MPI_WTIME()
       cputime = cputime + (t3-t3old)
       write(6,'(" CPU time for this trajectory is ",f10.5," s",/)')
      & (t3-t3old)
