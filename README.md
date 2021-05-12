@@ -23,7 +23,7 @@ DiNT - version 2.0 can be run at fixed energy or for thermal ensembles.
   
 ## SPRNG
 SPRNG: The Scalable Library for Pseudorandom Number Generation is available from the website [sprng.org](sprng.org).
-Included in the direcotry sprng/ is version 1.0. Newer versions are available to download from the website above.
+Included in the directory sprng/ is version 1.0. Newer versions are available to download from the website above.
   
 ## Install
   ```console
